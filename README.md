@@ -103,16 +103,15 @@ python main.py --dispatch
 python -m unittest discover tests/
 ```
 
-## ☁️ Deploy on Streamlit Community Cloud
+## 🌐 Live Streamlit Cloud Deployment
 
-1. Push this repository to GitHub.
-2. Open [share.streamlit.io](https://share.streamlit.io/) and choose **New app**.
-3. Select repository `AaryaSingh5/Intelligent-B2B-Receivables-Chaser-Payment-Recovery-Engine`, branch `main`, and main file `dashboard.py`.
-4. Deploy the app. Streamlit Cloud installs the packages from `requirements.txt` automatically.
+The executive dashboard is live on Streamlit Community Cloud:
 
-The dashboard runs in dry-run mode by default and does not require API credentials. If live Twilio or Razorpay integrations are needed, add only the required values in **App settings → Secrets** using the same names as `.env.example` (for example `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `TWILIO_ACCOUNT_SID`, and `TWILIO_AUTH_TOKEN`). Do not commit `.env` or credentials to GitHub.
+👉 **[Launch RECOVER.AI Live Dashboard](https://intelligent-b2b-receivables-chaser-payment-recovery-engine-7jm.streamlit.app/)**
 
-SQLite data and generated logs are local to the running Streamlit instance. Treat the deployed app as a demo unless a persistent external database and production webhook service are configured.
+- **Instant Browser Access**: No local installation or environment configuration required.
+- **Full Interactive Capabilities**: Review the 37-record batch, test the authentic dark-mode WhatsApp device simulator, ingest new receipts, trigger simulated Razorpay webhooks, and inspect the real-time SQLite database.
+- **Autonomous & Self-Contained**: Operates in standalone simulation mode with deterministic standard payment links, safe sandbox WhatsApp messaging, and zero cloud latency.
 
 ---
 
@@ -331,21 +330,32 @@ The engine includes active WhatsApp messaging capabilities powered by the Twilio
 
 ---
 
-## 🖥️ Streamlit Executive Dashboard
+## 🖥️ Streamlit Executive Dashboard & Visual Walkthrough
 
-Launch with `streamlit run dashboard.py` (available on `http://localhost:8501`). Features 5 specialized management views:
+> **Live Deployment**: [https://intelligent-b2b-receivables-chaser-payment-recovery-engine-7jm.streamlit.app/](https://intelligent-b2b-receivables-chaser-payment-recovery-engine-7jm.streamlit.app/)  
+> **Detailed Illustrated Guide**: [WALKTHROUGH.md](./WALKTHROUGH.md)
 
-1. **📊 Overview & KPIs**: Real-time recovery metrics cards (Revenue at Risk, Recovered/Secured, Recovery Rate %, Boundary Violations: 0), aging breakdown charts, and recovery rate gauges.
-2. **📋 Batch Records**: Interactive data table of all tracked receivables with filtering by status, aging bracket, and root-cause classification.
-3. **💬 WhatsApp Dispatch**: Interactive messaging console to preview, validate, and dispatch WhatsApp recovery notices (dry-run or live Twilio) with phone number input.
-4. **📜 Immutable Audit Trail**: Live streaming viewer of `logs/recovery_audit.log` showing complete chronological audit trails of every policy evaluation and message generated.
-5. **⚡ Live Automation Center**: Real-time operations room connecting all automated subsystems:
-   - **System Status Cards**: Real-time monitors for FastAPI server (`localhost:8000`), Razorpay gateway mode, WhatsApp delivery mode, and SQLite DB records.
-   - **🧾 Instant Receipt Ingestion**: Form to ingest invoices, auto-calculate aging brackets, and mint Razorpay payment links.
-   - **💬 Two-Way WhatsApp Simulator**: Test incoming customer WhatsApp replies (e.g. *"Will pay 25k by next Friday"*) and watch the NLP engine extract promise dates and pause nudges.
-   - **💳 Razorpay Webhook Simulator**: Trigger simulated `payment.failed` (causing root-cause diagnosis & instant recovery link generation) or `payment_link.paid` (auto-resolving the debt).
-   - **⏰ Run Recovery Sweep**: One-click autonomous sweep across all active database records.
-   - **🗄️ Live Database Stream**: Real-time inspection table displaying SQLite state changes instantly.
+Launch locally with `streamlit run dashboard.py` (available at `http://localhost:8501`). Designed as an executive control room inspired by **Stripe Sigma, Linear, and Mercury**:
+
+### 1. 📊 Executive Overview & Interactive Financial Analytics
+![Executive Overview & KPI Cards](./docs/assets/fintech_hero_kpis.png)
+- **Top Executive Branding Bar**: Live system health badges (`● FASTAPI 8000 ONLINE`, `RAZORPAY LINK GATEWAY`, `SQLITE PERSISTED`, `0 VIOLATIONS`).
+- **5 Hero KPI Cards**: Revenue at Risk (`₹79.2L`), Secured & Promised (`₹59.4L`), Recovery Velocity (`75.0%`), Active Interventions (`31`), and Guardrail Violations (`0`).
+- **Plotly Visualizations**: Area spline recovery curve, aging risk exposure donut chart, and 75% recovery velocity gauge.
+
+### 2. 💬 WhatsApp Recovery Console & Device Preview
+![WhatsApp Device Preview](./docs/assets/fintech_whatsapp_mockup.png)
+- **Authentic WhatsApp Mockup**: Dark-mode device canvas with customer avatar, verified WhatsApp Business badge, and timestamped outbound/inbound chat bubbles.
+- **Embedded Razorpay Payment Links**: Outbound bubbles embed live payment link cards (`https://rzp.io/l/...`) and blue double-check delivery receipts (`✓✓`).
+
+### 3. ⚡ Live Automation & Webhook Control Center
+![Live Automation Center](./docs/assets/fintech_automation_center.png)
+- **Receipt Ingestion Studio**: Ingest invoices with real-time aging calculation and instant link creation.
+- **Two-Way Inbound Simulator**: Test customer replies (*"Will pay by Friday"*) with instant NLP date extraction pausing reminders.
+- **Razorpay Webhooks**: Single-click triggers for `payment.failed` and `payment_link.paid`.
+- **Live SQLite Database Stream**: Real-time table view reflecting database state changes dynamically.
+
+📖 **For high-resolution screenshots and video recordings of all 5 tabs, see [WALKTHROUGH.md](./WALKTHROUGH.md).**
 
 ## 🧪 Automated Test Suite
 
