@@ -1,121 +1,104 @@
-# 🏦 Revenue Recovery Dashboard & Automation Platform — Walkthrough
-
-> **Interactive Walkthrough of the Intelligent B2B Receivables Chaser & Payment Recovery Engine**  
+# ⚡ RECOVER.AI — Autonomous B2B Revenue Recovery Platform
+> **Enterprise Walkthrough & UI Showcase**  
 > Razorpay AI Buildathon 2026 — Track 3: AI Revenue Recovery
 
----
-
-## 🖥️ Executive Dashboard Overview
-
-The Streamlit dashboard runs locally at **`http://localhost:8501`** and provides an executive view across five operational panels:
+An ultra-premium, executive-grade FinTech dashboard inspired by **Stripe Sigma, Linear, Ramp, and Mercury**.
 
 ---
 
-### 1. 📊 Top-Level KPI Cards
+## 🖥️ Executive Mission Control & Visual Showcase
 
-![Top-Level KPI Cards](./docs/assets/dashboard_kpi_cards.png)
-
-Five executive KPI cards with real-time portfolio metrics:
-- **37** Total Records Tracked
-- **₹79.2L** Revenue at Risk
-- **₹59.4L** Recovered / Promised
-- **75.0%** Recovery Rate
-- **0** Boundary Violations *(Strictly 0 compliance violations enforced)*
-
-Secondary status badges: **20 Nudges Sent**, **11 Promises Tracked (Paused)**, **6 Max Retries Reached**, and **0 Pending**.
+The interface runs locally at **`http://localhost:8501`** and operates as a unified executive control room across five operational panels:
 
 ---
 
-### 2. 📋 Interactive Batch Record Explorer
+### 1. 📊 Executive Overview & Interactive Financial Analytics
 
-![Interactive Batch Records Explorer](./docs/assets/batch_records_table.png)
+![Executive Overview & Hero KPI Cards](./docs/assets/fintech_hero_kpis.png)
 
-Filterable, real-time data table displaying each receivable or failed transaction:
-- Filter by Record Type (Invoices vs. Gateway Failures)
-- Filter by Status (`NUDGE_SENT`, `PROMISE_TRACKED`, `MAX_RETRIES_REACHED`, `RESOLVED`)
-- Dynamic amount slider and search
+#### Top Executive Branding Header
+- **RECOVER.AI** branding with enterprise gradient badge
+- Live system status pills:
+  - `● FASTAPI 8000 ONLINE` (Pulsing live indicator)
+  - `RAZORPAY LINK GATEWAY` (Active standard payment links)
+  - `SQLITE PERSISTED` (ACID-compliant storage)
+  - `0 VIOLATIONS (100% SLA)` (Guaranteed bounded financial guardrails)
 
----
+#### 5 Master KPI Hero Cards
+- **Revenue at Risk**: `₹79.2L` (`₹7,924,900` across 37 active records)
+- **Secured & Promised**: `₹59.4L` (`₹5,943,900` with ▲ 75.0% velocity)
+- **Recovery Conversion**: `75.0%` (Target SLA: 70%+ — **▲ ON TRACK**)
+- **Active Interventions**: `31` (20 Nudges sent, 11 Promises paused under 2-nudge gate)
+- **Guardrail Violations**: `0` (**● 100% COMPLIANT** with zero financial spam or compliance breaches)
 
-### 3. 📜 Live Audit Trail Viewer
-
-![Live Audit Trail Viewer](./docs/assets/audit_trail_tab.png)
-
-Terminal-grade monospace log viewer reading directly from `logs/recovery_audit.log`:
-- Complete chronological audit trails for every decision and policy gate
-- Text filter and line-limit slider
-- Direct download button for auditor compliance reviews
-
----
-
-### 4. 🛡️ Compliance & Architecture Panel
-
-![Compliance & Architecture Panel](./docs/assets/compliance_architecture_tab.png)
-
-Documents the engine's hard financial guardrails:
-1. **Stopping Rule**: Hard stop at 2 nudges (`MAX_RETRIES_REACHED`).
-2. **Compliance Tone Gate**: Age-gated messaging (Soft 1–15d → Moderate 16–30d → Escalated 31+d; legal escalation strictly forbidden under 30 days).
-3. **Promise-to-Pay Pause**: Automated pause on any commitment date.
-
-![Architecture Details](./docs/assets/compliance_architecture_details.png)
+#### Dark-Mode Financial Visualizations (Plotly)
+- **Capital Recovery Velocity & Residual Risk Trajectory**: Area spline curve tracking capital at risk vs. recovered & promised across aging cohorts.
+- **Exposure by Aging Bracket**: Multi-color donut chart with centered summary (`PORTFOLIO RISK`).
+- **Recovery SLA Gauge**: Semicircular progress gauge tracking conversion against SLA thresholds.
+- **Gateway Error Breakdown**: Horizontal bar chart diagnosing payment degradation root causes.
 
 ---
 
-### 5. 💬 WhatsApp Recovery Dispatch via Twilio
+### 2. 📋 Receivables Portfolio & Batch Explorer
 
-![WhatsApp Recovery Dispatch](./docs/assets/whatsapp_dispatch_tab.png)
+![Receivables Portfolio Table](./docs/assets/fintech_portfolio_table.png)
 
-Integrated with the **Twilio API for WhatsApp**:
-- **Single-Message Tester**: Select any customer record, inspect the generated contextual copy, enter an E.164 phone number, and dispatch live or in dry-run mode.
-- **Batch Dispatch**: Dispatch all records simultaneously with guardrail protection (records at `MAX_RETRIES_REACHED` are automatically blocked).
-- **Safety Allowlist**: Live mode requires `ENABLE_LIVE_WHATSAPP=true` and restricts outbound messages strictly to `ALLOWED_RECIPIENTS` in `.env`.
-- **CLI Support**: `python main.py --dispatch` (dry-run) and `python main.py --dispatch --live-whatsapp` (live).
+- Interactive high-density data table with customer name, contact details, exposure amount in INR (`₹`), aging bracket classification, lifecycle status, nudge count, and promise date.
+- Quick filter pills for `SOFT (1-15d)`, `MODERATE (16-30d)`, and `ESCALATED (31+d)`.
 
 ---
 
-### 6. ⚡ Live Automation Center (FastAPI, Webhooks, Razorpay & SQLite)
+### 3. 💬 WhatsApp Recovery Console & Mobile Mockup
 
-The production-grade automation center connects receipt ingestion, active Razorpay checkout links, inbound WhatsApp webhooks, and autonomous background sweeps:
+![WhatsApp Recovery Console & Device Preview](./docs/assets/fintech_whatsapp_mockup.png)
 
-#### Live System Status & Instant Receipt Ingestion
-
-![Automation Center Status & Receipt Ingestion](./docs/assets/live_automation_top.png)
-
-- **System Status Cards**: Real-time monitors for the FastAPI server (`ONLINE` on port 8000), Razorpay gateway mode, WhatsApp delivery mode, and live SQLite database record counts.
-- **Instant Receipt Ingestion**: Enter an invoice number, customer name, due date, and amount. The engine automatically parses the receipt, computes the aging bracket, and mints an active Razorpay payment link.
-
-#### Two-Way WhatsApp NLP Simulator & Razorpay Webhooks
-
-![Two-Way WhatsApp Simulator & Razorpay Webhooks](./docs/assets/live_automation_mid.png)
-
-- **Two-Way WhatsApp NLP Simulator**: Test inbound customer replies (e.g., *"Will pay 25k by next Friday"*). The NLP regex engine parses the date commitment, sets invoice status to `PROMISE_TRACKED`, pauses future nudges, and automatically dispatches an acknowledgement.
-- **Razorpay Webhook Simulator**:
-  - `payment.failed`: Triggers root-cause error diagnosis (e.g. `ERR_INSUFFICIENT_FUNDS`), generates a diagnostic recovery link, and updates audit records.
-  - `payment_link.paid`: Instantly resolves the invoice as `RESOLVED`, clears the debt, and cancels all pending follow-ups.
-
-#### Autonomous Recovery Sweep & Real-Time SQLite Database Stream
-
-![Recovery Sweep & SQLite Stream](./docs/assets/live_automation_bot.png)
-
-- **Autonomous Recovery Sweep**: Re-checks promise deadlines, advances aging brackets, and enforces the strict 2-nudge stopping rule across the entire database with a single click.
-- **Live Database Table**: Directly reads from `data/recovery_engine.db` with live payment links, status badges, and timestamp tracking.
+- **Interactive Message Tester**: Select any customer receivable, customize contact phone number, and dispatch via dry-run simulation or live Twilio WhatsApp delivery.
+- **Authentic WhatsApp Device Preview**:
+  - Dark-mode phone canvas with contact avatar, green online status badge, and WhatsApp Business branding.
+  - Outbound recovery notice bubble (`#005C4B`) embedding active **Razorpay Instant Payment link cards**.
+  - Inbound customer response bubble (`#202C33`) showing customer commitment.
+  - Automated bot confirmation bubble acknowledging promise dates and confirming paused nudges.
 
 ---
 
-## 🎥 Dashboard Interaction Recording
+### 4. 🛡️ Compliance & Audit Ledger
 
-![Full Automation Center Walkthrough](./docs/assets/automation_center_verification.webp)
+![Compliance & Audit Ledger](./docs/assets/fintech_compliance_audit.png)
+
+- **Three Hard Guardrail Policy Cards**:
+  1. ⛔ **Stopping Rule**: Hard block after 2 nudges (`MAX_RETRIES_REACHED`).
+  2. 📋 **Compliance Tone Gate**: Age-gated messaging strictly preventing legal escalation under 30 days.
+  3. 🤝 **Promise-to-Pay Pause**: NLP regex extraction automatically freezing reminders until customer commitment date.
+- **Monospace Audit Terminal**: Live streaming viewer of `logs/recovery_audit.log` with search, line count controls, and direct download.
 
 ---
 
-## 🚀 How to Run
+### 5. ⚡ Live Automation & Webhook Control Center
+
+![Live Automation Center](./docs/assets/fintech_automation_center.png)
+
+- **Instant Receipt Ingestion Studio**: Form to ingest invoices, auto-calculate aging brackets, and mint Razorpay payment links.
+- **Two-Way WhatsApp Inbound Simulator**: Test customer replies (e.g. *"Will pay by next Tuesday afternoon"*) with instant NLP date extraction.
+- **Razorpay Webhook Simulator**: Trigger simulated `payment.failed` (causing root-cause diagnosis & link generation) or `payment_link.paid` (auto-resolving the debt).
+- **Autonomous Recovery Sweep**: Background scheduler sweep evaluating all records and enforcing stopping rules.
+- **Live SQLite Database Stream**: Real-time inspection table displaying SQLite state changes instantly.
+
+---
+
+## 🎥 Full UI Inspection Recording
+
+![Full Dashboard Interaction](./docs/assets/fintech_dashboard_inspection.webp)
+
+---
+
+## 🚀 How to Launch the Complete Stack
 
 ```bash
-# 1. Start the FastAPI Webhook & Automation Server
+# 1. Start the FastAPI Webhook Server (Port 8000)
 cd revenue_recovery_engine
 python server.py
 
-# 2. In a separate terminal, launch the Streamlit Executive Dashboard
+# 2. In a separate terminal, launch the Streamlit Dashboard (Port 8501)
 streamlit run dashboard.py
 
 # 3. Access URLs:

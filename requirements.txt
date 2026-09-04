@@ -10,3 +10,4 @@ twilio>=8.0.0,<10.0        # WhatsApp dispatch via Twilio API
 razorpay>=1.4.1,<2.0       # Razorpay Payment Gateway & Links API
 fastapi>=0.100.0
 uvicorn>=0.20.0
+plotly>=5.18.0
