@@ -18,6 +18,7 @@ This engine bridges three official Razorpay buildathon example tracks into a sin
 | **🧾 Receipt Ingestion & Aging Engine** | Automated receipt ingestion, due date aging classification, and instant payment link generation |
 | **💳 Razorpay Payment Gateway & Webhooks** | Generates dynamic Razorpay Payment Links; listens to `payment.failed` (root-cause diagnosis & instant recovery link) and `payment_link.paid` (auto-resolution) |
 | **💬 Two-Way WhatsApp Recovery Loop** | Dispatches WhatsApp reminders with Razorpay checkout links; ingests incoming replies via Twilio webhook, extracts promise dates with NLP regex, and auto-pauses nudges |
+| **📦 Portfolio Batch Recovery Dispatch** | 1-click batch dispatch across all 37 receivables with safety stopping rule enforcement (`MAX_RETRIES_REACHED` auto-blocked), tone gates, and delivery metrics (CLI & UI) |
 | **⏰ Autonomous Recovery Sweep Engine** | Background scheduler monitoring promise deadlines, advancing aging brackets, and enforcing 2-nudge stopping rules |
 | **🗄️ Thread-Safe SQLite Persistence** | Production-ready ACID storage (`data/recovery_engine.db`) for invoices, payment attempts, WhatsApp messages, and audit trail |
 | **🌐 FastAPI Webhook Server & Dashboard** | High-performance async REST API on port 8000 + 5-tab executive Streamlit dashboard with **Live Automation Center** |

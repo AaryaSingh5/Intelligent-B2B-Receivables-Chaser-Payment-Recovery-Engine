@@ -1183,6 +1183,96 @@ def render():
             </div>
             """, unsafe_allow_html=True)
 
+        st.markdown("---")
+        st.markdown("#### 📦 Portfolio-Wide Batch WhatsApp Recovery Dispatch")
+        st.markdown(
+            "Execute compliant multi-channel recovery dispatch across the entire batch of 37 receivables. "
+            "Enforces **hard stopping rules** (auto-blocks `MAX_RETRIES_REACHED`), **tone escalation gates**, "
+            "and embeds **live Razorpay instant settlement links**."
+        )
+
+        b_c1, b_c2 = st.columns([3, 1])
+        with b_c1:
+            batch_mode = st.radio(
+                "Batch Dispatch Execution Mode",
+                options=["🔵 Dry-Run Simulation (Sandbox Sweep)", "⚡ Live Twilio Delivery (Portfolio Broadcast)"],
+                horizontal=True,
+                key="batch_dispatch_mode",
+            )
+        is_batch_dry = "Dry-Run" in batch_mode
+
+        with b_c2:
+            st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+            run_batch_btn = st.button("🚀 Run Batch Dispatch (All 37)", type="primary", use_container_width=True)
+
+        if run_batch_btn:
+            if not is_batch_dry and not has_creds:
+                st.error("⚠️ Live mode requires valid Twilio credentials in `.env`.")
+            else:
+                with st.spinner("Dispatching recovery messages across all 37 receivables..."):
+                    batch_res = dispatch_whatsapp_messages(records, dry_run=is_batch_dry)
+                    st.session_state["batch_dispatch_results"] = batch_res
+                st.success(f"Batch dispatch executed successfully across {len(batch_res)} receivables!")
+
+        batch_res = st.session_state.get("batch_dispatch_results")
+        if batch_res:
+            m_total = len(batch_res)
+            m_sent = sum(1 for r in batch_res if r.status in ("sent", "simulated"))
+            m_blocked = sum(1 for r in batch_res if r.status == "skipped")
+            m_errors = sum(1 for r in batch_res if r.status == "error")
+
+            k1, k2, k3, k4 = st.columns(4)
+            with k1:
+                st.markdown(f"""
+                <div class="fintech-card" style="border-left: 3px solid #3b82f6;">
+                    <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Total Batch Size</div>
+                    <div style="font-size: 24px; font-weight: 800; color: #fff; font-family: 'JetBrains Mono', monospace; margin-top: 4px;">{m_total}</div>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Receivables evaluated</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with k2:
+                status_color = "#10b981" if not is_batch_dry else "#06b6d4"
+                status_label = "Delivered Live" if not is_batch_dry else "Simulated Safe"
+                st.markdown(f"""
+                <div class="fintech-card" style="border-left: 3px solid {status_color};">
+                    <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">{status_label}</div>
+                    <div style="font-size: 24px; font-weight: 800; color: {status_color}; font-family: 'JetBrains Mono', monospace; margin-top: 4px;">{m_sent}</div>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Compliant messages</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with k3:
+                st.markdown(f"""
+                <div class="fintech-card" style="border-left: 3px solid #f59e0b;">
+                    <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Guarded / Blocked</div>
+                    <div style="font-size: 24px; font-weight: 800; color: #f59e0b; font-family: 'JetBrains Mono', monospace; margin-top: 4px;">{m_blocked}</div>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Stopped by safety rules</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with k4:
+                err_color = "#ef4444" if m_errors > 0 else "#64748b"
+                st.markdown(f"""
+                <div class="fintech-card" style="border-left: 3px solid {err_color};">
+                    <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Dispatch Errors</div>
+                    <div style="font-size: 24px; font-weight: 800; color: {err_color}; font-family: 'JetBrains Mono', monospace; margin-top: 4px;">{m_errors}</div>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Gateway / network failures</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            b_data = [
+                {
+                    "Invoice ID": r.record_id,
+                    "Customer": r.customer_name,
+                    "Phone": r.recipient_number,
+                    "Status": r.status.upper(),
+                    "Reason / Details": r.error or "Compliant dispatch",
+                    "Message Preview": r.message_preview or "—",
+                }
+                for r in batch_res
+            ]
+            st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
+            st.dataframe(pd.DataFrame(b_data), use_container_width=True, height=280)
+
+
     # ──────────────────────────────────────────────────────────────────────
     # TAB 4: COMPLIANCE & AUDIT LEDGER
     # ──────────────────────────────────────────────────────────────────────

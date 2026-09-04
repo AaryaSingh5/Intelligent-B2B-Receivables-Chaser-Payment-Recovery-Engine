@@ -55,6 +55,9 @@ The interface runs locally at **`http://localhost:8501`** and operates as a unif
 ![WhatsApp Recovery Console & Device Preview](./docs/assets/fintech_whatsapp_mockup.png)
 
 - **Interactive Message Tester**: Select any customer receivable, customize contact phone number, and dispatch via dry-run simulation or live Twilio WhatsApp delivery.
+- **Portfolio-Wide Batch WhatsApp Dispatch**: 1-click execution across the entire batch of 37 receivables with automatic safety stopping rule enforcement (`MAX_RETRIES_REACHED` blocked), real-time KPI metrics (Sent, Simulated, Guarded/Blocked, Errors), and searchable dispatch ledger.
+
+![Portfolio-Wide Batch WhatsApp Recovery Dispatch](./docs/assets/batch_dispatch_results.png)
 - **Authentic WhatsApp Device Preview**:
   - Dark-mode phone canvas with contact avatar, green online status badge, and WhatsApp Business branding.
   - Outbound recovery notice bubble (`#005C4B`) embedding active **Razorpay Instant Payment link cards**.
