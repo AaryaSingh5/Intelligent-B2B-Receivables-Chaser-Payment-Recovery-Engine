@@ -14,6 +14,17 @@ Executive-grade, modern dashboard inspired by Stripe, Linear, Ramp, and Mercury:
 """
 
 from __future__ import annotations
+from src.scheduler import run_recovery_sweep
+from src.receipt_parser import parse_and_ingest_receipt
+from src.gateway import create_payment_link, handle_payment_failed, handle_payment_paid
+from src.db import get_all_invoices, get_live_metrics, init_db
+from src.dispatcher import dispatch_whatsapp_messages, DispatchResult, handle_inbound_whatsapp
+from src.evaluator import compute_metrics, RecoveryMetrics
+from src.logger import write_audit_log
+from src.orchestrator import generate_messages
+from src.guards import enforce_guards
+from src.diagnoser import diagnose
+from src.loader import load_records, RecordType, RecoveryStatus
 
 import json
 import os
@@ -31,17 +42,6 @@ import plotly.express as px
 # ── Ensure src is importable ────────────────────────────────────────────────
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from src.loader import load_records, RecordType, RecoveryStatus
-from src.diagnoser import diagnose
-from src.guards import enforce_guards
-from src.orchestrator import generate_messages
-from src.logger import write_audit_log
-from src.evaluator import compute_metrics, RecoveryMetrics
-from src.dispatcher import dispatch_whatsapp_messages, DispatchResult, handle_inbound_whatsapp
-from src.db import get_all_invoices, get_live_metrics, init_db
-from src.gateway import create_payment_link, handle_payment_failed, handle_payment_paid
-from src.receipt_parser import parse_and_ingest_receipt
-from src.scheduler import run_recovery_sweep
 
 # ── Paths ───────────────────────────────────────────────────────────────────
 DATA_PATH = Path(__file__).resolve().parent / "data" / "synthetic_batch.json"
@@ -566,6 +566,7 @@ section[data-testid="stSidebar"] {
 @st.cache_data(show_spinner=False)
 def run_pipeline():
     """Execute the core recovery pipeline and compute benchmark metrics."""
+    init_db()
     records = load_records(DATA_PATH)
     records = diagnose(records)
     records = enforce_guards(records)
@@ -605,7 +606,8 @@ def records_to_dataframe(records):
 
 def create_recovery_velocity_chart(metrics: RecoveryMetrics):
     """Area spline chart showing capital recovered vs. at-risk."""
-    categories = ["Total Risk", "Soft (1-15d)", "Moderate (16-30d)", "Escalated (31+d)", "Recovered / Promised"]
+    categories = ["Total Risk", "Soft (1-15d)", "Moderate (16-30d)",
+                  "Escalated (31+d)", "Recovered / Promised"]
     at_risk_vals = [
         metrics.total_revenue_at_risk,
         metrics.total_revenue_at_risk * 0.72,
@@ -647,9 +649,11 @@ def create_recovery_velocity_chart(metrics: RecoveryMetrics):
         plot_bgcolor="rgba(0,0,0,0)",
         height=320,
         margin=dict(l=20, r=20, t=30, b=20),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        legend=dict(orientation="h", yanchor="bottom",
+                    y=1.02, xanchor="right", x=1),
         xaxis=dict(gridcolor="rgba(255,255,255,0.05)", showgrid=True),
-        yaxis=dict(gridcolor="rgba(255,255,255,0.05)", showgrid=True, tickprefix="₹", tickformat=",.0f"),
+        yaxis=dict(gridcolor="rgba(255,255,255,0.05)",
+                   showgrid=True, tickprefix="₹", tickformat=",.0f"),
         font=dict(family="Plus Jakarta Sans", size=11, color="#94a3b8"),
     )
     return fig
@@ -683,7 +687,8 @@ def create_aging_donut(records):
         height=320,
         margin=dict(l=10, r=10, t=20, b=20),
         showlegend=True,
-        legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.05),
+        legend=dict(orientation="v", yanchor="middle",
+                    y=0.5, xanchor="left", x=1.05),
         annotations=[dict(
             text="PORTFOLIO<br><b>RISK</b>",
             x=0.5, y=0.5,
@@ -702,7 +707,8 @@ def create_recovery_gauge(rate_pct: float):
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=rate_pct,
-        number=dict(suffix="%", font=dict(family="Plus Jakarta Sans", size=32, color="#ffffff")),
+        number=dict(suffix="%", font=dict(
+            family="Plus Jakarta Sans", size=32, color="#ffffff")),
         gauge=dict(
             axis=dict(range=[0, 100], tickwidth=1, tickcolor="#64748b"),
             bar=dict(color="#6366f1", thickness=0.3),
@@ -740,7 +746,8 @@ def create_error_cause_bar(records):
             causes[r.error_code] = causes.get(r.error_code, 0) + 1
 
     if not causes:
-        causes = {"ERR_INSUFFICIENT_FUNDS": 5, "ERR_GATEWAY_TIMEOUT": 3, "ERR_CARD_EXPIRED": 2}
+        causes = {"ERR_INSUFFICIENT_FUNDS": 5,
+                  "ERR_GATEWAY_TIMEOUT": 3, "ERR_CARD_EXPIRED": 2}
 
     codes = list(causes.keys())
     counts = list(causes.values())
@@ -806,8 +813,10 @@ def render():
 
         status_filter = st.multiselect(
             "Lifecycle Status",
-            options=["NUDGE_SENT", "PROMISE_TRACKED", "MAX_RETRIES_REACHED", "PENDING"],
-            default=["NUDGE_SENT", "PROMISE_TRACKED", "MAX_RETRIES_REACHED", "PENDING"],
+            options=["NUDGE_SENT", "PROMISE_TRACKED",
+                     "MAX_RETRIES_REACHED", "PENDING"],
+            default=["NUDGE_SENT", "PROMISE_TRACKED",
+                     "MAX_RETRIES_REACHED", "PENDING"],
         )
 
         amount_range = st.slider(
@@ -960,7 +969,8 @@ def render():
                 <span class="status-pill active">INTERACTIVE SPLINE</span>
             </div>
         """, unsafe_allow_html=True)
-        st.plotly_chart(create_recovery_velocity_chart(metrics), use_container_width=True)
+        st.plotly_chart(create_recovery_velocity_chart(
+            metrics), use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
         col_left, col_mid, col_right = st.columns([1.2, 0.9, 0.9])
@@ -971,7 +981,8 @@ def render():
                     <div class="fintech-card-title"><span>🥧</span> Exposure by Aging Bracket</div>
                 </div>
             """, unsafe_allow_html=True)
-            st.plotly_chart(create_aging_donut(records), use_container_width=True)
+            st.plotly_chart(create_aging_donut(records),
+                            use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
         with col_mid:
@@ -981,7 +992,8 @@ def render():
                     <div class="fintech-card-title"><span>🎯</span> Recovery SLA Gauge</div>
                 </div>
             """, unsafe_allow_html=True)
-            st.plotly_chart(create_recovery_gauge(metrics.recovery_rate_pct), use_container_width=True)
+            st.plotly_chart(create_recovery_gauge(
+                metrics.recovery_rate_pct), use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
         with col_right:
@@ -991,7 +1003,8 @@ def render():
                     <div class="fintech-card-title"><span>⚠️</span> Gateway Error Breakdown</div>
                 </div>
             """, unsafe_allow_html=True)
-            st.plotly_chart(create_error_cause_bar(records), use_container_width=True)
+            st.plotly_chart(create_error_cause_bar(
+                records), use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
     # ──────────────────────────────────────────────────────────────────────
@@ -1044,9 +1057,11 @@ def render():
     # TAB 3: WHATSAPP RECOVERY CONSOLE
     # ──────────────────────────────────────────────────────────────────────
     with tab_whatsapp:
-        live_enabled = os.getenv("ENABLE_LIVE_WHATSAPP", "false").lower() == "true"
+        live_enabled = os.getenv(
+            "ENABLE_LIVE_WHATSAPP", "false").lower() == "true"
         twilio_sid = os.getenv("TWILIO_ACCOUNT_SID", "")
-        has_creds = bool(twilio_sid and twilio_sid != "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+        has_creds = bool(twilio_sid and twilio_sid !=
+                         "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
 
         st.markdown(f"""
         <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 18px 24px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
@@ -1072,24 +1087,30 @@ def render():
             record_options = {
                 f"{r.id} — {r.customer_name} (₹{r.amount:,.0f})": r for r in records
             }
-            selected_label = st.selectbox("Select Customer Record", options=list(record_options.keys()))
+            selected_label = st.selectbox(
+                "Select Customer Record", options=list(record_options.keys()))
             selected_rec = record_options[selected_label]
 
-            default_phone = getattr(selected_rec, "phone", "") or "+919876500001"
-            target_phone = st.text_input("Customer Phone Number", value=default_phone)
+            default_phone = getattr(
+                selected_rec, "phone", "") or "+919876500001"
+            target_phone = st.text_input(
+                "Customer Phone Number", value=default_phone)
 
             dispatch_mode = st.radio(
                 "Dispatch Execution Mode",
-                options=["🔵 Dry-Run (Sandbox Simulation)", "⚡ Live Twilio Delivery"],
+                options=["🔵 Dry-Run (Sandbox Simulation)",
+                         "⚡ Live Twilio Delivery"],
                 horizontal=True,
             )
             is_dry = "Dry-Run" in dispatch_mode
 
-            send_single_btn = st.button("📤 Send WhatsApp Recovery Notice", type="primary", use_container_width=True)
+            send_single_btn = st.button(
+                "📤 Send WhatsApp Recovery Notice", type="primary", use_container_width=True)
 
             if send_single_btn:
                 if not is_dry and not has_creds:
-                    st.error("⚠️ Live mode requires valid Twilio credentials in `.env`.")
+                    st.error(
+                        "⚠️ Live mode requires valid Twilio credentials in `.env`.")
                 else:
                     orig_phone = getattr(selected_rec, "phone", None)
                     selected_rec.phone = target_phone.strip()
@@ -1105,11 +1126,14 @@ def render():
                     if single_res:
                         res = single_res[0]
                         if res.status == "sent":
-                            st.success(f"✅ WhatsApp message delivered live! Twilio SID: `{res.message_sid}`")
+                            st.success(
+                                f"✅ WhatsApp message delivered live! Twilio SID: `{res.message_sid}`")
                         elif res.status == "simulated":
-                            st.info(f"🔵 **[Dry-Run Simulated]** Recovery message dispatched for {res.recipient_number}.")
+                            st.info(
+                                f"🔵 **[Dry-Run Simulated]** Recovery message dispatched for {res.recipient_number}.")
                         elif res.status == "skipped":
-                            st.warning(f"⏭️ Message blocked by safety rule: {res.error}")
+                            st.warning(
+                                f"⏭️ Message blocked by safety rule: {res.error}")
                         else:
                             st.error(f"❌ Dispatch error: {res.error}")
 
@@ -1209,7 +1233,8 @@ def render():
         st.markdown("#### 📜 Live Immutable Audit Log Terminal")
         if LOG_PATH.exists():
             log_content = LOG_PATH.read_text(encoding="utf-8")
-            st.markdown(f'<div class="terminal-audit">{log_content}</div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="terminal-audit">{log_content}</div>', unsafe_allow_html=True)
             st.download_button(
                 "📥 Download Audit Trail (recovery_audit.log)",
                 data=log_content,
@@ -1242,16 +1267,22 @@ def render():
         with auto_left:
             st.markdown("#### 📥 1. Instant Receipt Ingestion Studio")
             with st.form("receipt_ingest_form_premium"):
-                r_name = st.text_input("Customer Name", value="Zenith Logistics India Pvt Ltd")
-                r_phone = st.text_input("Customer Phone", value="+919876599001")
+                r_name = st.text_input(
+                    "Customer Name", value="Zenith Logistics India Pvt Ltd")
+                r_phone = st.text_input(
+                    "Customer Phone", value="+919876599001")
                 r_col1, r_col2 = st.columns(2)
                 with r_col1:
-                    r_amount = st.number_input("Amount (₹)", min_value=1000.0, max_value=5000000.0, value=175000.0, step=5000.0)
+                    r_amount = st.number_input(
+                        "Amount (₹)", min_value=1000.0, max_value=5000000.0, value=175000.0, step=5000.0)
                 with r_col2:
-                    r_aging = st.slider("Aging Overdue (Days)", min_value=1, max_value=60, value=18)
-                r_email = st.text_input("Customer Email", value="accounts@zenithlogistics.in")
+                    r_aging = st.slider(
+                        "Aging Overdue (Days)", min_value=1, max_value=60, value=18)
+                r_email = st.text_input(
+                    "Customer Email", value="accounts@zenithlogistics.in")
 
-                ingest_submit = st.form_submit_button("⚡ Ingest Receipt & Mint Payment Link", use_container_width=True)
+                ingest_submit = st.form_submit_button(
+                    "⚡ Ingest Receipt & Mint Payment Link", use_container_width=True)
 
             if ingest_submit:
                 new_rec = parse_and_ingest_receipt({
@@ -1261,7 +1292,8 @@ def render():
                     "aging_days": r_aging,
                     "customer_contact": r_email,
                 })
-                st.success(f"✅ Ingested **{new_rec['id']}** for **{r_name}** ({new_rec['aging_bracket']})!")
+                st.success(
+                    f"✅ Ingested **{new_rec['id']}** for **{r_name}** ({new_rec['aging_bracket']})!")
                 st.markdown(f"""
                 <div style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 12px; padding: 12px 16px; margin-top: 8px;">
                     <strong style="color: #34d399;">Razorpay Link Minted:</strong>
@@ -1275,7 +1307,8 @@ def render():
             live_map = {
                 f"{i['id']} — {i['customer_name']} (₹{i['amount']:,.0f}) [{i['status']}]": i for i in all_live
             }
-            sel_inv_label = st.selectbox("Select Target Invoice", options=list(live_map.keys()))
+            sel_inv_label = st.selectbox(
+                "Select Target Invoice", options=list(live_map.keys()))
             sel_inv = live_map[sel_inv_label]
 
             preset_replies = [
@@ -1285,7 +1318,8 @@ def render():
                 "Checking with finance team, will settle by 2026-09-18",
             ]
             chosen_reply = st.selectbox("Preset Reply", preset_replies)
-            cust_text = st.text_input("Inbound WhatsApp Message", value=chosen_reply)
+            cust_text = st.text_input(
+                "Inbound WhatsApp Message", value=chosen_reply)
 
             if st.button("📲 Process Inbound WhatsApp Reply", type="primary", use_container_width=True):
                 with st.spinner("Analyzing message with NLP regex parser..."):
@@ -1294,7 +1328,8 @@ def render():
                         message_body=cust_text,
                     )
                 if inbound_data["status"] == "promise_tracked":
-                    st.success(f"🤝 Promise Extracted: **{inbound_data['promise_date']}**! Reminders Paused.")
+                    st.success(
+                        f"🤝 Promise Extracted: **{inbound_data['promise_date']}**! Reminders Paused.")
                 else:
                     st.info("General inquiry recorded and acknowledged.")
                 st.code(inbound_data["auto_reply"], language="markdown")
@@ -1305,7 +1340,8 @@ def render():
 
         with g1:
             st.markdown("##### ⚠️ Webhook: `payment.failed`")
-            fail_code = st.selectbox("Gateway Error Code", ["ERR_GATEWAY_TIMEOUT", "ERR_INSUFFICIENT_FUNDS", "ERR_CARD_EXPIRED", "ERR_BANK_DECLINED"])
+            fail_code = st.selectbox("Gateway Error Code", [
+                                     "ERR_GATEWAY_TIMEOUT", "ERR_INSUFFICIENT_FUNDS", "ERR_CARD_EXPIRED", "ERR_BANK_DECLINED"])
             if st.button("⚡ Fire Failure Webhook", use_container_width=True):
                 evt = {
                     "event": "payment.failed",
@@ -1321,11 +1357,13 @@ def render():
                     }
                 }
                 res = handle_payment_failed(evt)
-                st.warning(f"Root cause diagnosed: `{fail_code}`. Link regenerated.")
+                st.warning(
+                    f"Root cause diagnosed: `{fail_code}`. Link regenerated.")
 
         with g2:
             st.markdown("##### 🎉 Webhook: `payment_link.paid`")
-            st.markdown(f"Settle **{sel_inv['id']}** for ₹{sel_inv['amount']:,.2f}.")
+            st.markdown(
+                f"Settle **{sel_inv['id']}** for ₹{sel_inv['amount']:,.2f}.")
             if st.button("🎉 Fire Paid Webhook", type="primary", use_container_width=True):
                 pevt = {
                     "event": "payment_link.paid",
@@ -1344,18 +1382,21 @@ def render():
 
         with g3:
             st.markdown("##### 🔄 Autonomous Recovery Sweep")
-            st.markdown("Re-check promise deadlines and enforce stopping rules.")
+            st.markdown(
+                "Re-check promise deadlines and enforce stopping rules.")
             if st.button("🚀 Run Recovery Sweep", type="secondary", use_container_width=True):
                 with st.spinner("Sweeping database..."):
                     sw = run_recovery_sweep(dry_run=True)
-                st.success(f"Sweep done: {sw['total_evaluated']} evaluated, {sw['nudges_dispatched']} nudges sent.")
+                st.success(
+                    f"Sweep done: {sw['total_evaluated']} evaluated, {sw['nudges_dispatched']} nudges sent.")
 
         st.markdown("---")
         st.markdown("#### 🗄️ Real-Time Persistent Database (SQLite Stream)")
         live_records = get_all_invoices()
         if live_records:
             live_df = pd.DataFrame(live_records)
-            display_db_cols = ["id", "customer_name", "phone", "amount", "aging_days", "status", "nudge_count", "payment_link_url", "promise_date", "updated_at"]
+            display_db_cols = ["id", "customer_name", "phone", "amount", "aging_days",
+                               "status", "nudge_count", "payment_link_url", "promise_date", "updated_at"]
             valid_cols = [c for c in display_db_cols if c in live_df.columns]
             st.dataframe(
                 live_df[valid_cols],

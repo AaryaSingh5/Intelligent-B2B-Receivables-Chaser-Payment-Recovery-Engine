@@ -9,7 +9,7 @@ Enforces three explicit safety rules before any messaging action:
 from __future__ import annotations
 
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Tuple
 
 from .loader import (
@@ -66,7 +66,7 @@ def extract_promise_date(reply: Optional[str]) -> Optional[str]:
 
 def _resolve_date_token(token: str) -> str:
     """Convert a fuzzy date token (day name, ordinal, 'end of month/week') to ISO date."""
-    today = datetime.utcnow().date()
+    today = datetime.now(timezone.utc).date()
 
     # "end of month"
     if "end of month" in token:

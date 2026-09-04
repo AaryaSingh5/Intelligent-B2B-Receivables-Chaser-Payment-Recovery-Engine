@@ -97,7 +97,21 @@ python main.py
 
 # 8. Run CLI with WhatsApp dispatch simulation
 python main.py --dispatch
+
+# 9. Run automated unit test suite (13 unit tests)
+python -m unittest discover tests/
 ```
+
+## ☁️ Deploy on Streamlit Community Cloud
+
+1. Push this repository to GitHub.
+2. Open [share.streamlit.io](https://share.streamlit.io/) and choose **New app**.
+3. Select repository `AaryaSingh5/Intelligent-B2B-Receivables-Chaser-Payment-Recovery-Engine`, branch `main`, and main file `dashboard.py`.
+4. Deploy the app. Streamlit Cloud installs the packages from `requirements.txt` automatically.
+
+The dashboard runs in dry-run mode by default and does not require API credentials. If live Twilio or Razorpay integrations are needed, add only the required values in **App settings → Secrets** using the same names as `.env.example` (for example `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `TWILIO_ACCOUNT_SID`, and `TWILIO_AUTH_TOKEN`). Do not commit `.env` or credentials to GitHub.
+
+SQLite data and generated logs are local to the running Streamlit instance. Treat the deployed app as a demo unless a persistent external database and production webhook service are configured.
 
 ---
 
@@ -331,6 +345,50 @@ Launch with `streamlit run dashboard.py` (available on `http://localhost:8501`).
    - **💳 Razorpay Webhook Simulator**: Trigger simulated `payment.failed` (causing root-cause diagnosis & instant recovery link generation) or `payment_link.paid` (auto-resolving the debt).
    - **⏰ Run Recovery Sweep**: One-click autonomous sweep across all active database records.
    - **🗄️ Live Database Stream**: Real-time inspection table displaying SQLite state changes instantly.
+
+## 🧪 Automated Test Suite
+
+The engine includes an automated unit test suite with 13 unit tests covering bounded stopping rules, compliance tone gates, promise NLP date extraction, and Razorpay HMAC signature verification:
+
+```bash
+python -m unittest discover tests/
+```
+
+| Test Module | Coverage | Status |
+|---|---|---|
+| `tests/test_guards.py` | Stopping Rule (`MAX_NUDGES=2`), 30-Day Compliance Tone Gate, Promise-to-Pay Pause | ✅ Pass |
+| `tests/test_diagnoser.py` | Aging cohort classification (Soft/Moderate/Escalated), Gateway error mappings | ✅ Pass |
+| `tests/test_nlp.py` | Colloquial temporal extraction ("next Friday", "tomorrow"), non-commitment filter | ✅ Pass |
+| `tests/test_gateway.py` | Deterministic/live link minting, HMAC-SHA256 signature verification, paid webhooks | ✅ Pass |
+| `tests/test_pipeline.py` | End-to-end 6-stage batch run on 37 synthetic records, zero boundary violations | ✅ Pass |
+
+---
+
+## 🏗️ System Architecture & AI Judgment
+
+For detailed engineering decisions, data flow diagrams, and a defense of where deterministic logic was chosen over non-deterministic AI to prevent financial liability, view:
+
+👉 **[docs/architecture.md](./docs/architecture.md)**
+
+---
+
+## ⚠️ Known Limitations & Honest Failure Modes
+
+As emphasized in the Razorpay Buildathon engineering criteria, production-minded software must honestly account for edge cases and limitations:
+
+1. **Colloquial & Ambiguous Promise Dates**:
+   - *Limitation*: The regex NLP engine extracts deterministic temporal anchors (e.g. *"by Friday"*, *"next Tuesday"*, *"tomorrow afternoon"*). Highly ambiguous replies like *"will pay once our client clears our pending invoice"* do not contain a concrete date.
+   - *Mitigation*: The engine gracefully falls back to classifying the message as a general inquiry, logs the reply to the audit trail, and maintains the existing reminder schedule without erroneously freezing the debt.
+2. **Twilio WhatsApp Sandboxing & Rate Limits**:
+   - *Limitation*: The Twilio WhatsApp sandbox requires recipient numbers to opt-in with a join code. Outbound dispatch is throttled with a 0.5s pause to prevent carrier rate-limiting.
+   - *Mitigation*: The dispatcher defaults to dry-run sandbox simulation mode unless `ENABLE_LIVE_WHATSAPP=true` is explicitly configured, protecting against accidental spam or API billing.
+3. **Webhook Idempotency & Network Partitions**:
+   - *Limitation*: If network instability drops a webhook delivery between Razorpay and the local FastAPI server, events could be delayed.
+   - *Mitigation*: The autonomous recovery sweep engine (`src/scheduler.py`) periodically scans the SQLite database to reconcile state independently of incoming webhooks.
+4. **ERP Accounting Sync**:
+   - *Limitation*: Current release ingests via JSON payloads, REST API (`/api/receipts/ingest`), and Streamlit UI. Native bidirectional syncing with Tally Prime or Zoho Books is slated for the Phase 2 production roadmap.
+
+---
 
 ## 📜 License
 
