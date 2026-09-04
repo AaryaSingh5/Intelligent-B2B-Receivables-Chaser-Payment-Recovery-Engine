@@ -4,6 +4,8 @@
 
 An ultra-premium, executive-grade FinTech dashboard inspired by **Stripe Sigma, Linear, Ramp, and Mercury**.
 
+🌐 **Live Cloud App**: [https://intelligent-b2b-receivables-chaser-payment-recovery-engine-7jm.streamlit.app/](https://intelligent-b2b-receivables-chaser-payment-recovery-engine-7jm.streamlit.app/)
+
 ---
 
 ## 🖥️ Executive Mission Control & Visual Showcase

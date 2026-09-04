@@ -4,6 +4,7 @@
 
 A production-ready, local-first Python CLI engine that automates B2B receivables chasing and payment failure recovery with bounded safety, complete audit trails, and measured metrics.
 
+🌐 **Live Cloud App**: [https://intelligent-b2b-receivables-chaser-payment-recovery-engine-7jm.streamlit.app/](https://intelligent-b2b-receivables-chaser-payment-recovery-engine-7jm.streamlit.app/)  
 📖 **[View the Complete Visual Walkthrough with UI Screenshots (WALKTHROUGH.md)](./WALKTHROUGH.md)**
 
 ---
