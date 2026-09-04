@@ -42,6 +42,15 @@ import plotly.express as px
 # ── Ensure src is importable ────────────────────────────────────────────────
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+# ── Sync Streamlit Cloud Secrets to os.environ ──────────────────────────────
+try:
+    if hasattr(st, "secrets"):
+        for _sec_k, _sec_v in st.secrets.items():
+            if isinstance(_sec_v, str) and _sec_k not in os.environ:
+                os.environ[_sec_k] = _sec_v
+except Exception:
+    pass
+
 
 # ── Paths ───────────────────────────────────────────────────────────────────
 DATA_PATH = Path(__file__).resolve().parent / "data" / "synthetic_batch.json"
@@ -1109,8 +1118,23 @@ def render():
 
             if send_single_btn:
                 if not is_dry and not has_creds:
-                    st.error(
-                        "⚠️ Live mode requires valid Twilio credentials in `.env`.")
+                    st.error("⚠️ Live mode requires valid Twilio credentials in `.env` (or Streamlit Cloud Secrets).")
+                    with st.expander("🛠️ How to Enable Live WhatsApp Delivery in 2 Minutes", expanded=True):
+                        st.markdown("""
+                        1. **Create a Free Twilio Account**: Go to [twilio.com](https://www.twilio.com) (free trial includes credits).
+                        2. **Join the WhatsApp Sandbox**:
+                           - In Twilio Console: **Messaging → Try it out → Send a WhatsApp message**.
+                           - From your phone, send `join <your-code>` to **+1 415 523 8886**.
+                        3. **Add credentials to `.env` (local) or Secrets (Streamlit Cloud)**:
+                           ```bash
+                           TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+                           TWILIO_AUTH_TOKEN=your_twilio_auth_token_here
+                           TWILIO_WHATSAPP_NUMBER=+14155238886
+                           ENABLE_LIVE_WHATSAPP=true
+                           ALLOWED_RECIPIENTS=+91XXXXXXXXXX
+                           ```
+                        4. **Safety Allowlist**: `ALLOWED_RECIPIENTS` protects you from accidentally messaging unknown contacts. Add your own phone number in E.164 format (e.g. `+919876543210`).
+                        """)
                 else:
                     orig_phone = getattr(selected_rec, "phone", None)
                     selected_rec.phone = target_phone.strip()
