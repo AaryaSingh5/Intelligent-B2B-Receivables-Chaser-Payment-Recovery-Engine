@@ -4,6 +4,8 @@
 
 A production-ready, local-first Python CLI engine that automates B2B receivables chasing and payment failure recovery with bounded safety, complete audit trails, and measured metrics.
 
+📖 **[View the Complete Visual Walkthrough with UI Screenshots (WALKTHROUGH.md)](./WALKTHROUGH.md)**
+
 ---
 
 ## 🎯 What It Does
