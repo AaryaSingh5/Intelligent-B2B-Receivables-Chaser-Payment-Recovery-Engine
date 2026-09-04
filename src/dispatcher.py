@@ -1,29 +1,19 @@
-﻿"""
-dispatcher.py -- WhatsApp Message Dispatcher (Twilio)
+"""
+dispatcher.py — Two-Way WhatsApp Message Dispatcher (Twilio)
 Intelligent B2B Receivables Chaser & Payment Recovery Engine
 
 Dispatches recovery messages to customers via WhatsApp using the
 Twilio API for WhatsApp (WhatsApp Business sandbox or production).
+Also handles INBOUND replies to extract promises-to-pay via NLP and pause nudges.
 
 Safety Architecture (Buildathon Compliant):
-  * DRY_RUN mode (default)  -- Logs intent; NO real API calls made.
-  * ENABLE_LIVE_WHATSAPP     -- Must be explicitly set to "true" in .env
+  • DRY_RUN mode (default)  — Logs intent; NO real API calls made.
+  • ENABLE_LIVE_WHATSAPP     — Must be explicitly set to "true" in .env
                                to allow live network requests.
-  * Recipient allowlist      -- Only sends to numbers in ALLOWED_RECIPIENTS
+  • Recipient allowlist      — Only sends to numbers in ALLOWED_RECIPIENTS
                                (comma-separated in .env) when in live mode.
-  * Message length cap       -- Truncates at 1600 chars (WhatsApp limit).
-  * Records blocked states   -- MAX_RETRIES_REACHED records are never sent.
-
-Environment Variables Required (live mode only):
-    TWILIO_ACCOUNT_SID       -- Your Twilio Account SID (starts with "AC")
-    TWILIO_AUTH_TOKEN        -- Your Twilio Auth Token
-    TWILIO_WHATSAPP_NUMBER   -- Twilio WhatsApp sender (e.g. +14155238886)
-    ENABLE_LIVE_WHATSAPP     -- Set to "true" to enable real sends (default: false)
-    ALLOWED_RECIPIENTS       -- Comma-separated allowlist of E.164 numbers
-
-Usage:
-    from src.dispatcher import dispatch_whatsapp_messages
-    results = dispatch_whatsapp_messages(records, dry_run=True)
+  • Message length cap       — Truncates at 1600 chars (WhatsApp limit).
+  • Records blocked states   — MAX_RETRIES_REACHED records are never sent.
 """
 
 from __future__ import annotations
@@ -32,14 +22,21 @@ import logging
 import os
 import time
 from dataclasses import dataclass, field
-from typing import List
+from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
 
+from .db import (
+    find_invoice_by_phone,
+    get_invoice,
+    log_audit_event,
+    log_whatsapp_message,
+    update_invoice_status,
+)
+from .guards import extract_promise_date
 from .loader import RecoveryRecord, RecoveryStatus
 
 load_dotenv()
-
 logger = logging.getLogger(__name__)
 
 WHATSAPP_MAX_CHARS = 1600
@@ -77,24 +74,49 @@ def _truncate(message: str, max_len: int = WHATSAPP_MAX_CHARS) -> str:
     return message[: max_len - 30] + "\n\n[...message truncated]"
 
 
-def _get_recipient(record: RecoveryRecord) -> str | None:
+def _get_recipient(record: Any) -> str | None:
     phone = getattr(record, "phone", None)
+    if not phone and isinstance(record, dict):
+        phone = record.get("phone")
     if not phone:
         return None
-    cleaned = phone.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
+    cleaned = str(phone).replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
     if not cleaned.startswith("+"):
         cleaned = "+" + cleaned
     return cleaned
 
 
-def _send_via_twilio(account_sid, auth_token, from_number, to_number, body):
+def send_single_whatsapp_message(
+    to_number: str,
+    body: str,
+    dry_run: bool = True,
+) -> tuple[str, str | None]:
+    """
+    Send or simulate a single WhatsApp message to a phone number.
+    Returns (sid_or_status, error_message).
+    """
+    config = _load_config()
+    cleaned_to = to_number.replace("whatsapp:", "").strip()
+    if not cleaned_to.startswith("+"):
+        cleaned_to = "+" + cleaned_to
+
+    if not config["live_enabled"]:
+        dry_run = True
+
+    if dry_run:
+        logger.info("[DISPATCHER] [SIMULATION] To %s: %s", cleaned_to, body[:80])
+        return f"SM_sim_{int(time.time()*1000)}", None
+
+    if config["allowed_list"] and cleaned_to not in config["allowed_list"]:
+        return "skipped", f"Recipient {cleaned_to} not in ALLOWED_RECIPIENTS allowlist"
+
     try:
         from twilio.rest import Client
-        client = Client(account_sid, auth_token)
+        client = Client(config["account_sid"], config["auth_token"])
         msg = client.messages.create(
-            body=body,
-            from_=f"whatsapp:{from_number}",
-            to=f"whatsapp:{to_number}",
+            body=_truncate(body),
+            from_=f"whatsapp:{config['from_number']}",
+            to=f"whatsapp:{cleaned_to}",
         )
         return msg.sid, None
     except ImportError:
@@ -104,7 +126,7 @@ def _send_via_twilio(account_sid, auth_token, from_number, to_number, body):
 
 
 def dispatch_whatsapp_messages(
-    records: List[RecoveryRecord],
+    records: List[Any],
     dry_run: bool = True,
     target_record_id: str | None = None,
 ) -> List[DispatchResult]:
@@ -112,35 +134,32 @@ def dispatch_whatsapp_messages(
     if not config["live_enabled"]:
         dry_run = True
 
-    if not dry_run:
-        missing = [k for k in ("account_sid", "auth_token") if not config[k]]
-        if missing:
-            raise ValueError(
-                f"Live WhatsApp dispatch requires: {', '.join(missing)}. "
-                "Set them in your .env file."
-            )
-
     results: List[DispatchResult] = []
 
     for record in records:
-        if target_record_id and record.id != target_record_id:
+        rec_id = getattr(record, "id", None) or (record.get("id") if isinstance(record, dict) else None)
+        cust_name = getattr(record, "customer_name", "Client") or (record.get("customer_name") if isinstance(record, dict) else "Client")
+        rec_status = getattr(record, "status", None) or (record.get("status") if isinstance(record, dict) else None)
+        status_val = rec_status.value if hasattr(rec_status, "value") else str(rec_status or "")
+        msg_body = getattr(record, "recovery_message", None) or (record.get("recovery_message") if isinstance(record, dict) else None)
+
+        if target_record_id and rec_id != target_record_id:
             continue
 
-        if record.status == RecoveryStatus.MAX_RETRIES_REACHED:
+        if status_val == "MAX_RETRIES_REACHED":
             results.append(DispatchResult(
-                record_id=record.id,
-                customer_name=record.customer_name,
+                record_id=rec_id or "UNKNOWN",
+                customer_name=cust_name,
                 recipient_number="N/A",
                 status="skipped",
-                error="MAX_RETRIES_REACHED -- dispatch blocked by guardrail",
+                error="MAX_RETRIES_REACHED — dispatch blocked by guardrail",
             ))
-            logger.info("[DISPATCHER] Skipped %s -- MAX_RETRIES_REACHED", record.id)
             continue
 
-        if not record.recovery_message:
+        if not msg_body:
             results.append(DispatchResult(
-                record_id=record.id,
-                customer_name=record.customer_name,
+                record_id=rec_id or "UNKNOWN",
+                customer_name=cust_name,
                 recipient_number="N/A",
                 status="skipped",
                 error="No recovery message generated",
@@ -150,77 +169,152 @@ def dispatch_whatsapp_messages(
         recipient = _get_recipient(record)
         if not recipient:
             results.append(DispatchResult(
-                record_id=record.id,
-                customer_name=record.customer_name,
+                record_id=rec_id or "UNKNOWN",
+                customer_name=cust_name,
                 recipient_number="N/A",
                 status="skipped",
                 error="No phone number on record",
-                message_preview=(record.recovery_message or "")[:80],
             ))
-            logger.info("[DISPATCHER] Skipped %s -- no phone number", record.id)
             continue
 
-        body = _truncate(record.recovery_message)
-        preview = body[:100].replace("\n", " ") + ("..." if len(body) > 100 else "")
+        preview = msg_body[:100].replace("\n", " ") + ("…" if len(msg_body) > 100 else "")
 
         if dry_run:
             results.append(DispatchResult(
-                record_id=record.id,
-                customer_name=record.customer_name,
+                record_id=rec_id,
+                customer_name=cust_name,
                 recipient_number=recipient,
                 status="simulated",
                 message_preview=preview,
             ))
-            logger.info("[DISPATCHER] [DRY RUN] Would send to %s (%s): %s",
-                        record.customer_name, recipient, preview)
+            log_whatsapp_message(
+                invoice_id=rec_id,
+                direction="OUTBOUND",
+                recipient=recipient,
+                body=msg_body,
+                status="simulated",
+            )
             continue
 
-        # Live mode -- allowlist guard
-        if config["allowed_list"] and recipient not in config["allowed_list"]:
-            results.append(DispatchResult(
-                record_id=record.id,
-                customer_name=record.customer_name,
-                recipient_number=recipient,
-                status="skipped",
-                error=f"Recipient {recipient} not in ALLOWED_RECIPIENTS allowlist",
-                message_preview=preview,
-            ))
-            logger.warning("[DISPATCHER] Allowlist block: %s (%s)", record.id, recipient)
-            continue
-
-        sid, err = _send_via_twilio(
-            account_sid=config["account_sid"],
-            auth_token=config["auth_token"],
-            from_number=config["from_number"],
-            to_number=recipient,
-            body=body,
-        )
-
+        sid, err = send_single_whatsapp_message(recipient, msg_body, dry_run=False)
         if err:
             results.append(DispatchResult(
-                record_id=record.id,
-                customer_name=record.customer_name,
+                record_id=rec_id,
+                customer_name=cust_name,
                 recipient_number=recipient,
                 status="error",
                 error=err,
                 message_preview=preview,
             ))
-            logger.error("[DISPATCHER] Send failed for %s: %s", record.id, err)
+            log_whatsapp_message(
+                invoice_id=rec_id,
+                direction="OUTBOUND",
+                recipient=recipient,
+                body=msg_body,
+                status="error",
+            )
         else:
             results.append(DispatchResult(
-                record_id=record.id,
-                customer_name=record.customer_name,
+                record_id=rec_id,
+                customer_name=cust_name,
                 recipient_number=recipient,
                 status="sent",
                 message_sid=sid,
                 message_preview=preview,
             ))
-            logger.info("[DISPATCHER] Sent to %s (%s) -- SID: %s",
-                        record.customer_name, recipient, sid)
+            log_whatsapp_message(
+                invoice_id=rec_id,
+                direction="OUTBOUND",
+                recipient=recipient,
+                body=msg_body,
+                status="sent",
+                twilio_sid=sid,
+            )
 
         time.sleep(SEND_DELAY_SECONDS)
 
     return results
+
+
+def handle_inbound_whatsapp(from_number: str, message_body: str) -> Dict[str, Any]:
+    """
+    Process an inbound WhatsApp message from a customer:
+      1. Match sender phone with invoice in SQLite.
+      2. Run NLP promise-to-pay extraction on text.
+      3. If a promise date is extracted:
+         - Pause reminders (status = PROMISE_TRACKED).
+         - Store promise_date in DB.
+         - Send automated pause confirmation.
+      4. If general inquiry:
+         - Log note and acknowledge.
+    """
+    cleaned_phone = from_number.replace("whatsapp:", "").strip()
+    invoice = find_invoice_by_phone(cleaned_phone)
+    inv_id = invoice["id"] if invoice else "UNKNOWN"
+    customer_name = invoice["customer_name"] if invoice else "Valued Client"
+    amount = invoice["amount"] if invoice else 0.0
+
+    # Log inbound message
+    log_whatsapp_message(
+        invoice_id=inv_id,
+        direction="INBOUND",
+        recipient=cleaned_phone,
+        body=message_body,
+        status="received",
+    )
+
+    # NLP promise extraction
+    promise_date = extract_promise_date(message_body)
+
+    if promise_date:
+        if invoice:
+            update_invoice_status(
+                invoice_id=inv_id,
+                status="PROMISE_TRACKED",
+                promise_date=promise_date,
+            )
+            log_audit_event(
+                inv_id,
+                "PROMISE_TRACKED_INBOUND",
+                f"Customer promised to pay by {promise_date} via WhatsApp reply: '{message_body}'",
+                {"promise_date": promise_date, "reply": message_body},
+            )
+
+        auto_reply = (
+            f"Hi {customer_name},\n\n"
+            f"🤝 Thank you! We have recorded your commitment to settle {inv_id} (₹{amount:,.2f}) "
+            f"by {promise_date}.\n\n"
+            f"We have paused all automated reminders until then. If you need to pay earlier, "
+            f"your link remains active:\n"
+            f"👉 {invoice.get('payment_link_url') if invoice else 'https://rzp.io/l/demo'}\n\n"
+            f"— Accounts Receivable Team"
+        )
+        send_single_whatsapp_message(cleaned_phone, auto_reply, dry_run=True)
+
+        return {
+            "status": "promise_tracked",
+            "invoice_id": inv_id,
+            "promise_date": promise_date,
+            "auto_reply": auto_reply,
+            "customer_name": customer_name,
+        }
+
+    # General reply acknowledgement
+    auto_reply = (
+        f"Hi {customer_name},\n\n"
+        f"Thank you for contacting Accounts Receivable regarding {inv_id}. "
+        f"Our operations team has received your note and will review it shortly.\n\n"
+        f"— Accounts Receivable Team"
+    )
+    send_single_whatsapp_message(cleaned_phone, auto_reply, dry_run=True)
+
+    return {
+        "status": "acknowledged",
+        "invoice_id": inv_id,
+        "promise_date": None,
+        "auto_reply": auto_reply,
+        "customer_name": customer_name,
+    }
 
 
 def format_dispatch_summary(results: List[DispatchResult]) -> str:

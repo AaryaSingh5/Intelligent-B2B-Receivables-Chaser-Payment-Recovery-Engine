@@ -18,6 +18,8 @@ env/
 
 # Logs (generated at runtime)
 logs/
+*.db
+*.sqlite3
 
 # IDE
 .vscode/

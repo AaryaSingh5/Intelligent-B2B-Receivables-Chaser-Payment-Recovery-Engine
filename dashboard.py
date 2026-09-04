@@ -33,7 +33,11 @@ from src.guards import enforce_guards
 from src.orchestrator import generate_messages
 from src.logger import write_audit_log
 from src.evaluator import compute_metrics, RecoveryMetrics
-from src.dispatcher import dispatch_whatsapp_messages, DispatchResult
+from src.dispatcher import dispatch_whatsapp_messages, DispatchResult, handle_inbound_whatsapp
+from src.db import get_all_invoices, get_live_metrics, init_db
+from src.gateway import create_payment_link, handle_payment_failed, handle_payment_paid
+from src.receipt_parser import parse_and_ingest_receipt
+from src.scheduler import run_recovery_sweep
 
 # ── Paths ───────────────────────────────────────────────────────────────────
 DATA_PATH = Path(__file__).resolve().parent / "data" / "synthetic_batch.json"
@@ -635,11 +639,12 @@ def render():
     # ══════════════════════════════════════════════════════════════════════
     # TABBED CONTENT
     # ══════════════════════════════════════════════════════════════════════
-    tab_records, tab_audit, tab_compliance, tab_whatsapp = st.tabs([
+    tab_records, tab_audit, tab_compliance, tab_whatsapp, tab_automation = st.tabs([
         "📋 Batch Records",
         "📜 Audit Trail",
         "🛡️ Compliance & Architecture",
         "💬 WhatsApp Dispatch",
+        "⚡ Live Automation Center",
     ])
 
     # ── TAB 1: Interactive Batch Record Table ────────────────────────────
@@ -1234,10 +1239,304 @@ def render():
                         f"✅ Live dispatch complete — {sent} messages sent via Twilio WhatsApp."
                     )
 
+    # ── TAB 5: Live Automation Center ──────────────────────────────────
+    with tab_automation:
+        st.markdown("""
+        <div class="section-header">
+            <h2>⚡ Live Automation & Webhook Control Center</h2>
+            <span class="badge">EVENT-DRIVEN WORKFLOW</span>
+        </div>
+        """, unsafe_allow_html=True)
 
-# ═══════════════════════════════════════════════════════════════════════════
-# ENTRY POINT
-# ═══════════════════════════════════════════════════════════════════════════
+        st.markdown(
+            '<p style="font-size: 13px; color: #94a3b8; margin-bottom: 24px;">'
+            'An end-to-end autonomous event loop connecting <strong style="color: #f1f5f9;">Receipt Ingestion</strong>, '
+            '<strong style="color: #6366f1;">Razorpay Payment Links & Webhooks</strong>, '
+            '<strong style="color: #10b981;">Two-Way WhatsApp NLP</strong>, and '
+            '<strong style="color: #06b6d4;">Persistent SQLite Database</strong> in real time.</p>',
+            unsafe_allow_html=True,
+        )
+
+        # ── Architecture Status Indicators ──────────────────────────────
+        auto_col1, auto_col2, auto_col3 = st.columns(3)
+        with auto_col1:
+            st.markdown("""
+            <div class="compliance-card" style="border-left: 3px solid #6366f1;">
+                <h3 style="font-size: 14px;">🌐 FastAPI Webhook Server</h3>
+                <p style="font-size: 12px; margin: 4px 0 0 0;">
+                    Port: <code>8000</code> &nbsp;|&nbsp; Endpoints: <code>/api/webhooks/razorpay</code>, <code>/api/webhooks/twilio/whatsapp</code>
+                </p>
+                <span class="rule-tag" style="background: rgba(99,102,241,0.15); color: #818cf8; margin-top: 8px;">
+                    FASTAPI ASGI ACTIVE
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with auto_col2:
+            st.markdown("""
+            <div class="compliance-card" style="border-left: 3px solid #10b981;">
+                <h3 style="font-size: 14px;">💳 Razorpay Gateway Engine</h3>
+                <p style="font-size: 12px; margin: 4px 0 0 0;">
+                    Live standard payment links (UPI, Cards, Netbanking) with HMAC-SHA256 verification.
+                </p>
+                <span class="rule-tag" style="background: rgba(16,185,129,0.15); color: #34d399; margin-top: 8px;">
+                    RAZORPAY STANDARD LINKS
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with auto_col3:
+            st.markdown("""
+            <div class="compliance-card" style="border-left: 3px solid #06b6d4;">
+                <h3 style="font-size: 14px;">🤝 Two-Way WhatsApp NLP</h3>
+                <p style="font-size: 12px; margin: 4px 0 0 0;">
+                    Inbound customer reply interceptor extracts promise date and auto-pauses reminders.
+                </p>
+                <span class="rule-tag" style="background: rgba(6,182,212,0.15); color: #22d3ee; margin-top: 8px;">
+                    TWILIO INBOUND + NLP
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        # ── WORKBENCH 1: Instant Receipt Ingestion Studio ──────────────
+        st.markdown("### 📥 1. Ingest Receipt & Auto-Mint Razorpay Link")
+        st.markdown(
+            '<p style="font-size: 12px; color: #94a3b8; margin-bottom: 12px;">'
+            'Add a new overdue B2B receipt/invoice. The engine instantly computes aging, assigns the compliance bracket, '
+            'creates a Razorpay Payment Link, and drafts the contextual recovery notice.</p>',
+            unsafe_allow_html=True,
+        )
+
+        with st.form("receipt_ingest_form", clear_on_submit=False):
+            rc1, rc2, rc3 = st.columns(3)
+            with rc1:
+                new_cust_name = st.text_input("Customer Name", value="Zenith Logistics India Pvt Ltd")
+                new_cust_phone = st.text_input("Customer Phone (E.164)", value="+919876599001")
+            with rc2:
+                new_amount = st.number_input("Invoice Amount (₹)", min_value=1000.0, max_value=5000000.0, value=175000.0, step=5000.0)
+                new_aging = st.slider("Aging Days Overdue", min_value=1, max_value=60, value=18)
+            with rc3:
+                new_contact = st.text_input("Customer Contact Email", value="accounts@zenithlogistics.in")
+                ingest_btn = st.form_submit_button("⚡ Ingest Receipt & Mint Payment Link", type="primary", use_container_width=True)
+
+        if ingest_btn:
+            new_record = parse_and_ingest_receipt({
+                "customer_name": new_cust_name,
+                "phone": new_cust_phone,
+                "amount": new_amount,
+                "aging_days": new_aging,
+                "customer_contact": new_contact,
+            })
+            st.success(
+                f"✅ Receipt **{new_record['id']}** ingested for **{new_cust_name}**! "
+                f"Assigned bracket: `{new_record['aging_bracket']}`."
+            )
+            st.markdown(f"""
+            <div style="background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.3);
+                        border-radius: 10px; padding: 14px 18px; margin: 12px 0;">
+                <strong style="color: #34d399;">🔗 Razorpay Payment Link Generated:</strong>
+                <a href="{new_record['payment_link_url']}" target="_blank" style="color: #60a5fa; font-weight: 600; margin-left: 8px;">
+                    {new_record['payment_link_url']}
+                </a>
+            </div>
+            """, unsafe_allow_html=True)
+            st.code(new_record["recovery_message"], language="markdown")
+
+        st.markdown("---")
+
+        # ── WORKBENCH 2: Two-Way WhatsApp Customer Reply Simulator ─────
+        st.markdown("### 💬 2. Two-Way WhatsApp Conversation Simulator")
+        st.markdown(
+            '<p style="font-size: 12px; color: #94a3b8; margin-bottom: 12px;">'
+            'Simulate an incoming WhatsApp reply from a customer. The engine runs regex NLP to detect commitment dates, '
+            'transitions the invoice to <code style="color: #34d399;">PROMISE_TRACKED</code>, and sends an automated confirmation.</p>',
+            unsafe_allow_html=True,
+        )
+
+        all_live_invoices = get_all_invoices()
+        live_options = {
+            f"{i['id']} — {i['customer_name']} (₹{i['amount']:,.0f}) [{i['status']}]": i for i in all_live_invoices
+        }
+
+        wa_sim_col1, wa_sim_col2 = st.columns([1, 1])
+        with wa_sim_col1:
+            selected_inv_label = st.selectbox("Select Target Invoice", options=list(live_options.keys()), key="wa_sim_select")
+            selected_inv = live_options[selected_inv_label]
+
+            sample_replies = [
+                "Will pay by next Tuesday afternoon",
+                "Processing transfer, payment will be done by Friday",
+                "Will clear this by tomorrow",
+                "Checking with my finance team, will settle by 2026-09-18",
+                "Already initiated NEFT transfer",
+            ]
+            selected_sample = st.selectbox("Preset Customer Replies (or type custom below)", sample_replies)
+            custom_reply = st.text_input("Customer WhatsApp Message", value=selected_sample)
+
+            sim_reply_btn = st.button("📲 Receive WhatsApp Reply", type="primary", use_container_width=True)
+
+        with wa_sim_col2:
+            if sim_reply_btn and custom_reply:
+                with st.spinner("Processing inbound WhatsApp message..."):
+                    inbound_res = handle_inbound_whatsapp(
+                        from_number=selected_inv.get("phone") or "+919876543001",
+                        message_body=custom_reply,
+                    )
+
+                if inbound_res["status"] == "promise_tracked":
+                    st.success(
+                        f"🤝 Promise Extracted: **{inbound_res['promise_date']}**! "
+                        f"Invoice **{inbound_res['invoice_id']}** transitioned to **PROMISE_TRACKED**."
+                    )
+                else:
+                    st.info(f"ℹ️ Inbound note acknowledged for **{inbound_res['invoice_id']}**.")
+
+                st.markdown(
+                    '<div style="font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">'
+                    'AUTOMATED BOT CONFIRMATION DISPATCHED:</div>',
+                    unsafe_allow_html=True,
+                )
+                st.code(inbound_res["auto_reply"], language="markdown")
+            else:
+                st.markdown(
+                    '<div style="background: rgba(17,24,39,0.5); border: 1px dashed rgba(99,102,241,0.2); '
+                    'border-radius: 8px; padding: 24px; text-align: center; color: #64748b; font-size: 13px;">'
+                    'Click "📲 Receive WhatsApp Reply" to test real-time promise extraction and auto-reply.'
+                    '</div>',
+                    unsafe_allow_html=True,
+                )
+
+        st.markdown("---")
+
+        # ── WORKBENCH 3: Razorpay Webhook Simulator ────────────────────
+        st.markdown("### 💳 3. Razorpay Payment Gateway Webhook Simulator")
+        st.markdown(
+            '<p style="font-size: 12px; color: #94a3b8; margin-bottom: 12px;">'
+            'Trigger real-time gateway webhook events. Observe how the engine diagnoses root causes on payment failures '
+            'or marks invoices as <code style="color: #34d399;">RECOVERED</code> on payment success.</p>',
+            unsafe_allow_html=True,
+        )
+
+        gw_col1, gw_col2 = st.columns([1, 1])
+        with gw_col1:
+            st.markdown("##### ⚠️ Simulate Payment Failure (`payment.failed`)")
+            fail_error_code = st.selectbox(
+                "Gateway Error Code",
+                ["ERR_GATEWAY_TIMEOUT", "ERR_INSUFFICIENT_FUNDS", "ERR_CARD_EXPIRED", "ERR_BANK_DECLINED", "ERR_NETWORK_ERROR"],
+            )
+            trigger_fail_btn = st.button("⚡ Fire `payment.failed` Webhook", type="secondary", use_container_width=True)
+
+            if trigger_fail_btn:
+                fail_event = {
+                    "event": "payment.failed",
+                    "payload": {
+                        "payment": {
+                            "entity": {
+                                "id": f"pay_live_{int(time.time())}",
+                                "amount": int(selected_inv["amount"] * 100),
+                                "error_code": fail_error_code,
+                                "error_description": f"Transaction rejected with {fail_error_code}",
+                                "contact": selected_inv.get("phone", "+919876543210"),
+                                "notes": {
+                                    "invoice_id": selected_inv["id"],
+                                    "customer_name": selected_inv["customer_name"],
+                                },
+                            }
+                        }
+                    }
+                }
+                fail_res = handle_payment_failed(fail_event)
+                st.warning(
+                    f"⚠️ Failure diagnosed: **{fail_error_code}**! "
+                    f"Generated recovery link: `{fail_res.get('payment_link')}`"
+                )
+
+        with gw_col2:
+            st.markdown("##### ✅ Simulate Payment Success (`payment_link.paid`)")
+            st.markdown(
+                f'<p style="font-size: 12px; color: #94a3b8;">Settle invoice '
+                f'<strong>{selected_inv["id"]}</strong> for ₹{selected_inv["amount"]:,.2f}.</p>',
+                unsafe_allow_html=True,
+            )
+            trigger_paid_btn = st.button("🎉 Fire `payment_link.paid` Webhook", type="primary", use_container_width=True)
+
+            if trigger_paid_btn:
+                paid_event = {
+                    "event": "payment_link.paid",
+                    "payload": {
+                        "payment_link": {
+                            "entity": {
+                                "id": f"plink_live_{int(time.time())}",
+                                "amount": int(selected_inv["amount"] * 100),
+                                "notes": {"invoice_id": selected_inv["id"]},
+                            }
+                        }
+                    }
+                }
+                paid_res = handle_payment_paid(paid_event)
+                st.success(
+                    f"🎉 Revenue Secured! Invoice **{selected_inv['id']}** marked as **RECOVERED**. "
+                    f"Automated receipt dispatched via WhatsApp."
+                )
+
+        st.markdown("---")
+
+        # ── WORKBENCH 4: Autonomous Recovery Sweep ──────────────────────
+        st.markdown("### 🔄 4. Autonomous Recovery Engine Sweep")
+        st.markdown(
+            '<p style="font-size: 12px; color: #94a3b8; margin-bottom: 12px;">'
+            'Executes the periodic scheduler sweep: evaluates promise deadlines (auto-unpausing expired promises), '
+            'advances overdue aging, enforces stopping rules, and triggers queued recovery notices.</p>',
+            unsafe_allow_html=True,
+        )
+
+        sweep_col1, sweep_col2 = st.columns([3, 1])
+        with sweep_col1:
+            st.markdown(
+                '<p style="font-size: 13px; color: #e2e8f0; margin-top: 6px;">'
+                'Scheduled daemon runs continuously in background. Click to run an immediate on-demand sweep.</p>',
+                unsafe_allow_html=True,
+            )
+        with sweep_col2:
+            sweep_btn = st.button("🚀 Run Recovery Sweep", type="primary", use_container_width=True)
+
+        if sweep_btn:
+            with st.spinner("Executing autonomous recovery sweep..."):
+                sweep_result = run_recovery_sweep(dry_run=True)
+            st.success(
+                f"✅ Sweep completed: **{sweep_result['total_evaluated']}** records evaluated, "
+                f"**{sweep_result['nudges_dispatched']}** nudges actioned, "
+                f"**{sweep_result['stopped_max_retries']}** stopped by guardrails."
+            )
+
+        # ── Live SQLite Database Stream ────────────────────────────────
+        st.markdown("---")
+        st.markdown("### 🗄️ Live Database Records (SQLite)")
+        live_db_data = get_all_invoices()
+        live_df = pd.DataFrame(live_db_data)
+        if not live_df.empty:
+            cols_to_show = ["id", "customer_name", "phone", "amount", "aging_days", "status", "nudge_count", "payment_link_url", "promise_date", "updated_at"]
+            available_cols = [c for c in cols_to_show if c in live_df.columns]
+            st.dataframe(
+                live_df[available_cols],
+                use_container_width=True,
+                height=350,
+                column_config={
+                    "id": st.column_config.TextColumn("ID", width="small"),
+                    "customer_name": st.column_config.TextColumn("Customer", width="medium"),
+                    "phone": st.column_config.TextColumn("WhatsApp", width="medium"),
+                    "amount": st.column_config.NumberColumn("Amount (₹)", format="₹%.2f", width="small"),
+                    "aging_days": st.column_config.NumberColumn("Aging (d)", width="small"),
+                    "status": st.column_config.TextColumn("Status", width="medium"),
+                    "nudge_count": st.column_config.NumberColumn("Nudges", width="small"),
+                    "payment_link_url": st.column_config.LinkColumn("Razorpay Link", width="medium"),
+                    "promise_date": st.column_config.TextColumn("Promise Date", width="small"),
+                    "updated_at": st.column_config.TextColumn("Last Updated", width="medium"),
+                },
+            )
+
 
 if __name__ == "__main__":
     render()

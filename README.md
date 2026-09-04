@@ -8,14 +8,16 @@ A production-ready, local-first Python CLI engine that automates B2B receivables
 
 ## 🎯 What It Does
 
-This engine bridges three official Razorpay buildathon example tracks into a single unified pipeline:
+This engine bridges three official Razorpay buildathon example tracks into a single unified, event-driven, production-ready platform:
 
-| Track | Capability |
-|-------|-----------|
-| **B2B Receivables Chaser** | Escalating workflows from gentle reminders → firm follow-ups → escalation notices based on invoice aging |
-| **Payment Degradation Root-Cause Analysis** | Parses gateway error codes (timeouts, insufficient funds, expired cards, etc.) into actionable root causes |
-| **Promise-to-Pay Tracker** | Extracts commitment dates from customer replies, pauses escalation, and schedules follow-up checks |
-| **💬 WhatsApp Dispatch (Twilio)** | Live or simulated multi-channel WhatsApp recovery dispatch with allowlist protection & rate limiting |
+| Capability | Real-World Implementation |
+|---|---|
+| **🧾 Receipt Ingestion & Aging Engine** | Automated receipt ingestion, due date aging classification, and instant payment link generation |
+| **💳 Razorpay Payment Gateway & Webhooks** | Generates dynamic Razorpay Payment Links; listens to `payment.failed` (root-cause diagnosis & instant recovery link) and `payment_link.paid` (auto-resolution) |
+| **💬 Two-Way WhatsApp Recovery Loop** | Dispatches WhatsApp reminders with Razorpay checkout links; ingests incoming replies via Twilio webhook, extracts promise dates with NLP regex, and auto-pauses nudges |
+| **⏰ Autonomous Recovery Sweep Engine** | Background scheduler monitoring promise deadlines, advancing aging brackets, and enforcing 2-nudge stopping rules |
+| **🗄️ Thread-Safe SQLite Persistence** | Production-ready ACID storage (`data/recovery_engine.db`) for invoices, payment attempts, WhatsApp messages, and audit trail |
+| **🌐 FastAPI Webhook Server & Dashboard** | High-performance async REST API on port 8000 + 5-tab executive Streamlit dashboard with **Live Automation Center** |
 
 ---
 
@@ -25,15 +27,20 @@ This engine bridges three official Razorpay buildathon example tracks into a sin
 revenue_recovery_engine/
 │
 ├── data/
-│   └── synthetic_batch.json      # 37 mixed mock records (invoices + payment failures)
+│   ├── synthetic_batch.json      # 37 mock records (invoices + payment failures)
+│   └── recovery_engine.db        # SQLite database (invoices, attempts, messages, audit)
 │
 ├── src/
 │   ├── __init__.py
+│   ├── db.py                     # SQLite persistence layer with thread-safe pooling
+│   ├── gateway.py                # Razorpay SDK client, payment link minting & webhooks
+│   ├── receipt_parser.py         # Receipt ingestion, aging classification, link creation
+│   ├── dispatcher.py             # Twilio WhatsApp two-way messaging & NLP promise parser
+│   ├── scheduler.py              # Autonomous recovery sweep & promise expiration checker
 │   ├── loader.py                 # Ingestion & normalization into Pydantic models
 │   ├── diagnoser.py              # Root-cause classifier & aging bracket engine
 │   ├── guards.py                 # Bounded policy gates & stopping rules
 │   ├── orchestrator.py           # Contextual recovery message generator
-│   ├── dispatcher.py             # Twilio WhatsApp message dispatcher with safety gates
 │   ├── logger.py                 # Immutable audit trail writer
 │   └── evaluator.py              # Metrics aggregation & markdown report generator
 │
@@ -43,8 +50,10 @@ revenue_recovery_engine/
 │
 ├── .env.example                  # Template for API keys & configuration
 ├── requirements.txt              # Pinned Python dependencies
-├── README.md                     # This file
-└── main.py                       # CLI entry point — runs the full pipeline
+├── README.md                     # Comprehensive documentation
+├── server.py                     # FastAPI webhook & automation server (Port 8000)
+├── dashboard.py                  # Streamlit Executive Dashboard & Live Automation Center (Port 8501)
+└── main.py                       # CLI entry point — runs the batch pipeline
 ```
 
 ---
@@ -75,24 +84,85 @@ pip install -r requirements.txt
 # 4. (Optional) Copy and configure environment
 cp .env.example .env
 
-# 5. Run the engine (CLI)
+# 5. Launch the FastAPI Webhook & Automation Server (Port 8000)
+python server.py
+
+# 6. Launch the Streamlit Executive Dashboard & Live Automation Center (Port 8501)
+streamlit run dashboard.py
+
+# 7. Run the CLI batch processor directly
 python main.py
 
-# 6. Run with WhatsApp simulation / dry-run dispatch
+# 8. Run CLI with WhatsApp dispatch simulation
 python main.py --dispatch
-
-# 7. Run with live WhatsApp dispatch via Twilio (requires .env credentials)
-python main.py --dispatch --live-whatsapp
-
-# 8. Launch the Streamlit Executive Dashboard
-streamlit run dashboard.py
 ```
 
-### Custom Data
+---
 
-```bash
-python main.py --data path/to/your_batch.json
+## ⚡ Real-World Event-Driven Automation
+
+The engine operates as a fully reactive, automated platform that connects invoice receipts, live payment links, automated webhooks, and customer messaging loops in real time:
+
 ```
+                  ┌──────────────────────┐
+                  │   Receipt Ingestion  │
+                  │ (PDF / JSON / Scan)  │
+                  └──────────┬───────────┘
+                             │
+                             ▼
+                  ┌──────────────────────┐
+                  │ Dynamic Razorpay     │
+                  │ Payment Link Minted  │
+                  └──────────┬───────────┘
+                             │
+            ┌────────────────┴────────────────┐
+            ▼                                 ▼
+┌──────────────────────────┐      ┌──────────────────────────┐
+│   Outbound Recovery Msg  │      │  Payment Gateway Event   │
+│   (WhatsApp / Email)     │      │   (Razorpay Webhook)     │
+└───────────┬──────────────┘      └───────────┬──────────────┘
+            │                                 │
+            ▼                                 │
+┌──────────────────────────┐                  │
+│ Customer Replies via WA  │                  │
+│ ("Will pay by Friday")   │                  │
+└───────────┬──────────────┘                  │
+            │                                 │
+            ▼                                 │
+┌──────────────────────────┐                  │
+│  Twilio Inbound Webhook  │                  │
+│  + NLP Regex Extractor   │                  │
+└───────────┬──────────────┘                  │
+            │                                 │
+            ▼                                 ▼
+┌────────────────────────────────────────────────────────────┐
+│              Autonomous Recovery Sweep Engine              │
+│  - Pauses nudges on promise commitment                     │
+│  - Re-triggers escalation when promise expires             │
+│  - On payment.failed: Diagnoses root cause & resends link  │
+│  - On payment_link.paid: Marks RESOLVED & closes ticket   │
+│  - Enforces hard 2-nudge stopping rules & audit logging    │
+└──────────────────────────┬─────────────────────────────────┘
+                           │
+                           ▼
+              ┌──────────────────────────┐
+              │ Thread-Safe SQLite DB    │
+              │ + Streamlit Live Center  │
+              └──────────────────────────┘
+```
+
+### FastAPI Endpoints (`http://localhost:8000`)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/health` | Healthcheck & system status (uptime, active records, DB connectivity) |
+| `GET` | `/api/invoices` | List all tracked invoices with status, aging bracket, and promise state |
+| `POST` | `/api/receipts/ingest` | Ingest new receipt, compute aging, classify bracket, and mint Razorpay link |
+| `POST` | `/api/webhooks/razorpay` | Razorpay webhook listener (`payment.failed` root-cause, `payment_link.paid` auto-resolve) with HMAC verification |
+| `POST` | `/api/webhooks/twilio/whatsapp` | Twilio inbound webhook: receives customer replies, extracts promise dates via NLP, pauses escalation |
+| `POST` | `/api/automation/sweep` | Triggers background recovery sweep across all active invoices |
+
+Interactive Swagger documentation is available at `http://localhost:8000/docs`.
 
 ---
 
@@ -243,6 +313,22 @@ The engine includes active WhatsApp messaging capabilities powered by the Twilio
 5. **Interactive UI**: Open `dashboard.py` in your browser, head to the **💬 WhatsApp Dispatch** tab, select any record, enter your number, and test single or batch message dispatch interactively!
 
 ---
+
+## 🖥️ Streamlit Executive Dashboard
+
+Launch with `streamlit run dashboard.py` (available on `http://localhost:8501`). Features 5 specialized management views:
+
+1. **📊 Overview & KPIs**: Real-time recovery metrics cards (Revenue at Risk, Recovered/Secured, Recovery Rate %, Boundary Violations: 0), aging breakdown charts, and recovery rate gauges.
+2. **📋 Batch Records**: Interactive data table of all tracked receivables with filtering by status, aging bracket, and root-cause classification.
+3. **💬 WhatsApp Dispatch**: Interactive messaging console to preview, validate, and dispatch WhatsApp recovery notices (dry-run or live Twilio) with phone number input.
+4. **📜 Immutable Audit Trail**: Live streaming viewer of `logs/recovery_audit.log` showing complete chronological audit trails of every policy evaluation and message generated.
+5. **⚡ Live Automation Center**: Real-time operations room connecting all automated subsystems:
+   - **System Status Cards**: Real-time monitors for FastAPI server (`localhost:8000`), Razorpay gateway mode, WhatsApp delivery mode, and SQLite DB records.
+   - **🧾 Instant Receipt Ingestion**: Form to ingest invoices, auto-calculate aging brackets, and mint Razorpay payment links.
+   - **💬 Two-Way WhatsApp Simulator**: Test incoming customer WhatsApp replies (e.g. *"Will pay 25k by next Friday"*) and watch the NLP engine extract promise dates and pause nudges.
+   - **💳 Razorpay Webhook Simulator**: Trigger simulated `payment.failed` (causing root-cause diagnosis & instant recovery link generation) or `payment_link.paid` (auto-resolving the debt).
+   - **⏰ Run Recovery Sweep**: One-click autonomous sweep across all active database records.
+   - **🗄️ Live Database Stream**: Real-time inspection table displaying SQLite state changes instantly.
 
 ## 📜 License
 
