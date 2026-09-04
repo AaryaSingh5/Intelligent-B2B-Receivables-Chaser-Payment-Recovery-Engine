@@ -110,14 +110,28 @@ def send_single_whatsapp_message(
     if config["allowed_list"] and cleaned_to not in config["allowed_list"]:
         return "skipped", f"Recipient {cleaned_to} not in ALLOWED_RECIPIENTS allowlist"
 
+    cleaned_from = config["from_number"].replace("whatsapp:", "").replace(" ", "").replace("(", "").replace(")", "").replace("-", "").strip()
+    if not cleaned_from.startswith("+"):
+        cleaned_from = "+" + cleaned_from
+
     try:
         from twilio.rest import Client
         client = Client(config["account_sid"], config["auth_token"])
-        msg = client.messages.create(
-            body=_truncate(body),
-            from_=f"whatsapp:{config['from_number']}",
-            to=f"whatsapp:{cleaned_to}",
-        )
+        
+        # Check if a specific Content Template SID is configured in environment
+        content_sid = os.getenv("TWILIO_CONTENT_SID", "").strip()
+        if content_sid:
+            msg = client.messages.create(
+                content_sid=content_sid,
+                from_=f"whatsapp:{cleaned_from}",
+                to=f"whatsapp:{cleaned_to}",
+            )
+        else:
+            msg = client.messages.create(
+                body=_truncate(body),
+                from_=f"whatsapp:{cleaned_from}",
+                to=f"whatsapp:{cleaned_to}",
+            )
         return msg.sid, None
     except ImportError:
         return "error", "Twilio SDK not installed. Run: pip install twilio"
