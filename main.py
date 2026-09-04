@@ -4,11 +4,13 @@ main.py — CLI Entry Point
 Intelligent B2B Receivables Chaser & Payment Recovery Engine
 
 Runs the full pipeline end-to-end:
-  Loader → Diagnoser → Guards → Orchestrator → Logger → Evaluator
+  Loader → Diagnoser → Guards → Orchestrator → Logger → Evaluator → Dispatcher
 
 Usage:
     python main.py
     python main.py --data path/to/custom_batch.json
+    python main.py --dispatch               # Dry-run WhatsApp dispatch (simulation)
+    python main.py --dispatch --live-whatsapp  # Live WhatsApp send (needs .env creds)
 """
 
 from __future__ import annotations
@@ -34,6 +36,7 @@ from src.guards import enforce_guards
 from src.orchestrator import generate_messages
 from src.logger import write_audit_log
 from src.evaluator import compute_metrics, print_metrics_report
+from src.dispatcher import dispatch_whatsapp_messages, format_dispatch_summary
 
 
 # ─── Pretty Console Helpers ─────────────────────────────────────────────────
@@ -62,7 +65,7 @@ def _section(title: str) -> None:
 
 # ─── Main Pipeline ──────────────────────────────────────────────────────────
 
-def main(data_path: Path | None = None) -> None:
+def main(data_path: Path | None = None, dispatch: bool = False, live_whatsapp: bool = False) -> None:
     print(_BANNER)
     start = time.perf_counter()
 
@@ -112,10 +115,27 @@ def main(data_path: Path | None = None) -> None:
     print_metrics_report(metrics, output_path=report_path)
     _step("Metrics report saved", str(report_path))
 
+    # ── 7. WhatsApp Dispatch (optional) ──────────────────────────────────
+    if dispatch:
+        _section("⑦ WHATSAPP DISPATCH (via Twilio)")
+        mode_label = "LIVE" if live_whatsapp else "DRY-RUN / SIMULATION"
+        _step("Dispatch mode", mode_label)
+        if live_whatsapp:
+            print("  ⚠️  LIVE mode active — real WhatsApp messages will be sent")
+            print("       Only numbers in ALLOWED_RECIPIENTS (.env) will receive messages.")
+        dispatch_results = dispatch_whatsapp_messages(
+            records, dry_run=not live_whatsapp
+        )
+        print(format_dispatch_summary(dispatch_results))
+    else:
+        _section("⑦ WHATSAPP DISPATCH")
+        _step("Status", "Skipped (pass --dispatch to enable simulation or live send)")
+
     elapsed = time.perf_counter() - start
-    print(f"\n{'═' * 70}")
+    divider = "═" * 70
+    print(f"\n{divider}")
     print(f"  ✅  Pipeline completed in {elapsed:.2f}s")
-    print(f"{'═' * 70}\n")
+    print(f"{divider}\n")
 
 
 # ─── CLI Argument Parsing ───────────────────────────────────────────────────
@@ -130,5 +150,17 @@ if __name__ == "__main__":
         default=None,
         help="Path to a custom JSON batch file (default: data/synthetic_batch.json)",
     )
+    parser.add_argument(
+        "--dispatch",
+        action="store_true",
+        default=False,
+        help="Run WhatsApp dispatch after pipeline (dry-run by default)",
+    )
+    parser.add_argument(
+        "--live-whatsapp",
+        action="store_true",
+        default=False,
+        help="Enable live WhatsApp sending via Twilio (requires .env credentials)",
+    )
     args = parser.parse_args()
-    main(data_path=args.data)
+    main(data_path=args.data, dispatch=args.dispatch, live_whatsapp=args.live_whatsapp)

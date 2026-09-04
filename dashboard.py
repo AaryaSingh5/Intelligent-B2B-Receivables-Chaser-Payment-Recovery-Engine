@@ -33,6 +33,7 @@ from src.guards import enforce_guards
 from src.orchestrator import generate_messages
 from src.logger import write_audit_log
 from src.evaluator import compute_metrics, RecoveryMetrics
+from src.dispatcher import dispatch_whatsapp_messages, DispatchResult
 
 # ── Paths ───────────────────────────────────────────────────────────────────
 DATA_PATH = Path(__file__).resolve().parent / "data" / "synthetic_batch.json"
@@ -446,6 +447,7 @@ def records_to_dataframe(records):
             "ID": r.id,
             "Type": "📄 Invoice" if r.type == RecordType.B2B_INVOICE else "💳 Payment",
             "Customer": r.customer_name,
+            "WhatsApp": getattr(r, "phone", None) or "—",
             "Amount (₹)": f"₹{r.amount:,.2f}",
             "Amount_raw": r.amount,
             "Root Cause / Bracket": (
@@ -633,10 +635,11 @@ def render():
     # ══════════════════════════════════════════════════════════════════════
     # TABBED CONTENT
     # ══════════════════════════════════════════════════════════════════════
-    tab_records, tab_audit, tab_compliance = st.tabs([
+    tab_records, tab_audit, tab_compliance, tab_whatsapp = st.tabs([
         "📋 Batch Records",
         "📜 Audit Trail",
         "🛡️ Compliance & Architecture",
+        "💬 WhatsApp Dispatch",
     ])
 
     # ── TAB 1: Interactive Batch Record Table ────────────────────────────
@@ -675,6 +678,7 @@ def render():
                 "ID": st.column_config.TextColumn("ID", width="small"),
                 "Type": st.column_config.TextColumn("Type", width="small"),
                 "Customer": st.column_config.TextColumn("Customer", width="medium"),
+                "WhatsApp": st.column_config.TextColumn("WhatsApp", width="small"),
                 "Amount (₹)": st.column_config.TextColumn("Amount", width="small"),
                 "Root Cause / Bracket": st.column_config.TextColumn("Root Cause / Bracket", width="medium"),
                 "Status": st.column_config.TextColumn("Status", width="medium"),
@@ -965,6 +969,270 @@ def render():
                 "Severity": st.column_config.TextColumn("Severity", width="small"),
             },
         )
+
+    # ── TAB 4: WhatsApp Dispatch Panel ───────────────────────────────────
+    with tab_whatsapp:
+        st.markdown("""
+        <div class="section-header">
+            <h2>💬 WhatsApp Dispatch via Twilio</h2>
+            <span class="badge">TWILIO API</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown(
+            '<p style="font-size: 13px; color: #94a3b8; margin-bottom: 20px;">'
+            'Send recovery messages directly to customers via <strong style="color: #f1f5f9;">WhatsApp</strong> '
+            'using the Twilio API. By default this runs in <strong style="color: #34d399;">Dry-Run / Simulation</strong> '
+            'mode — no real messages are sent. Set <code style="background: rgba(99,102,241,0.12); '
+            'color: #a5b4fc; padding: 2px 8px; border-radius: 4px;">ENABLE_LIVE_WHATSAPP=true</code> '
+            'in your <code style="background: rgba(99,102,241,0.12); color: #a5b4fc; padding: 2px 8px; '
+            'border-radius: 4px;">.env</code> file to enable live delivery.</p>',
+            unsafe_allow_html=True,
+        )
+
+        import os
+        live_enabled = os.getenv("ENABLE_LIVE_WHATSAPP", "false").lower() == "true"
+        twilio_sid = os.getenv("TWILIO_ACCOUNT_SID", "")
+        has_creds = bool(twilio_sid and twilio_sid != "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+
+        # Status indicator
+        if live_enabled and has_creds:
+            st.markdown("""
+            <div style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3);
+                        border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; display: flex;
+                        align-items: center; gap: 12px;">
+                <span style="font-size: 24px;">✅</span>
+                <div>
+                    <strong style="color: #34d399; font-size: 14px;">Live Mode Active</strong>
+                    <p style="color: #94a3b8; font-size: 12px; margin: 2px 0 0 0;">
+                        Twilio credentials detected. Messages will be delivered to ALLOWED_RECIPIENTS.
+                    </p>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div style="background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2);
+                        border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; display: flex;
+                        align-items: center; gap: 12px;">
+                <span style="font-size: 24px;">🔵</span>
+                <div>
+                    <strong style="color: #a5b4fc; font-size: 14px;">Dry-Run / Simulation Mode</strong>
+                    <p style="color: #94a3b8; font-size: 12px; margin: 2px 0 0 0;">
+                        No real messages will be sent. Add Twilio credentials to .env and set
+                        ENABLE_LIVE_WHATSAPP=true to enable live delivery.
+                    </p>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Setup guide expander
+        with st.expander("📖 WhatsApp Setup Guide (click to expand)"):
+            st.markdown("""
+            ### How to Enable Live WhatsApp Delivery
+
+            **Step 1 — Create a Twilio Account**
+            - Sign up free at [twilio.com](https://www.twilio.com) (no credit card needed for sandbox)
+
+            **Step 2 — Join the WhatsApp Sandbox**
+            - In Twilio Console → Messaging → Try it out → Send a WhatsApp message
+            - Send the join code from your phone to `+14155238886`
+
+            **Step 3 — Add credentials to `.env`**
+            ```
+            TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+            TWILIO_AUTH_TOKEN=your_auth_token
+            TWILIO_WHATSAPP_NUMBER=+14155238886
+            ENABLE_LIVE_WHATSAPP=true
+            ALLOWED_RECIPIENTS=+919876543210,+919123456789
+            ```
+
+            **Step 4 — Allowlist your numbers**
+            - Add your target phone numbers (E.164 format e.g. `+919876543210`) to `ALLOWED_RECIPIENTS`
+            - Only these numbers will receive messages (hard safety guardrail)
+
+            > **Note:** The Twilio sandbox requires recipients to opt-in by texting the join code first.
+            > For production, upgrade to a Twilio WhatsApp Business approved sender.
+            """)
+
+        st.markdown("---")
+
+        # ── SECTION 1: Single Record Interactive Test ─────────────────────────
+        st.markdown("### 📱 Test Single WhatsApp Dispatch")
+        st.markdown(
+            '<p style="font-size: 13px; color: #94a3b8; margin-bottom: 16px;">'
+            'Select any record from the batch, preview its tone-matched message, and send a test message '
+            'to your own WhatsApp number or the record recipient.</p>',
+            unsafe_allow_html=True,
+        )
+
+        test_col1, test_col2 = st.columns([1, 1])
+
+        with test_col1:
+            record_options = {
+                f"{r.id} — {r.customer_name} (₹{r.amount:,.0f})": r for r in records
+            }
+            selected_label = st.selectbox(
+                "Select Customer Record",
+                options=list(record_options.keys()),
+                index=0,
+            )
+            selected_rec = record_options[selected_label]
+
+            default_phone = getattr(selected_rec, "phone", "") or "+919876500001"
+            custom_phone = st.text_input(
+                "Recipient WhatsApp Number (E.164 format)",
+                value=default_phone,
+                help="Include country code, e.g. +919876543210. Must be joined to Twilio Sandbox for sandbox testing.",
+            )
+
+            test_mode = st.radio(
+                "Single Test Mode",
+                options=["🔵 Dry-Run (Simulate)", "⚡ Live Send"],
+                horizontal=True,
+                key="single_test_mode",
+            )
+            single_is_dry = "Dry-Run" in test_mode
+
+            send_single_btn = st.button("📤 Send Test WhatsApp", type="primary", use_container_width=True)
+
+        with test_col2:
+            st.markdown(
+                '<div style="font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">'
+                'MESSAGE PAYLOAD PREVIEW:</div>',
+                unsafe_allow_html=True,
+            )
+            st.code(selected_rec.recovery_message or "No message generated.", language="markdown")
+
+            status_color = "#34d399" if selected_rec.status.value in ("NUDGE_SENT", "PROMISE_TRACKED") else "#fb7185"
+            st.markdown(
+                f'<p style="font-size: 12px; color: #64748b;">Record Status: '
+                f'<strong style="color: {status_color};">{selected_rec.status.value}</strong> &nbsp;|&nbsp; '
+                f'Nudge Count: <strong>{selected_rec.nudge_count}/2</strong></p>',
+                unsafe_allow_html=True,
+            )
+
+        if send_single_btn:
+            if not single_is_dry and not has_creds:
+                st.error("⚠️ Live send requires Twilio credentials in `.env`.")
+            else:
+                # Temporarily attach test phone if customized
+                orig_phone = getattr(selected_rec, "phone", None)
+                selected_rec.phone = custom_phone.strip()
+
+                with st.spinner("Dispatching WhatsApp message..."):
+                    single_res = dispatch_whatsapp_messages(
+                        [selected_rec],
+                        dry_run=single_is_dry,
+                        target_record_id=selected_rec.id,
+                    )
+                selected_rec.phone = orig_phone
+
+                if single_res:
+                    res = single_res[0]
+                    if res.status == "sent":
+                        st.success(f"✅ WhatsApp message delivered live! Twilio SID: `{res.message_sid}`")
+                    elif res.status == "simulated":
+                        st.info(f"🔵 **[Dry-Run Simulated]** WhatsApp message validated & queued for {res.recipient_number}. Message length: {len(selected_rec.recovery_message or '')} chars.")
+                    elif res.status == "skipped":
+                        st.warning(f"⏭️ Message blocked by safety guard: {res.error}")
+                    else:
+                        st.error(f"❌ Dispatch error: {res.error}")
+
+        st.markdown("---")
+
+        # ── SECTION 2: Batch Dispatch ─────────────────────────────────────────
+        st.markdown("### 📦 Batch WhatsApp Dispatch")
+        st.markdown(
+            '<p style="font-size: 13px; color: #94a3b8; margin-bottom: 16px;">'
+            'Process the entire batch of 37 records simultaneously with guardrail safety.</p>',
+            unsafe_allow_html=True,
+        )
+
+        wa_col1, wa_col2 = st.columns([3, 1])
+        with wa_col1:
+            dispatch_mode = st.radio(
+                "Batch Dispatch Mode",
+                options=["🔵 Dry-Run (Simulation)", "⚡ Live Send"],
+                horizontal=True,
+                help="Dry-Run logs intent without making API calls. Live Send requires Twilio credentials.",
+            )
+        with wa_col2:
+            dispatch_all = st.button(
+                "💬 Run Batch Dispatch",
+                type="secondary",
+                use_container_width=True,
+                help="Dispatch WhatsApp messages for all eligible records",
+            )
+
+        is_dry_run = "Dry-Run" in dispatch_mode
+
+        if dispatch_all:
+            if not is_dry_run and not has_creds:
+                st.error(
+                    "⚠️ Live mode requires Twilio credentials. "
+                    "Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN to your .env and restart the dashboard."
+                )
+            else:
+                with st.spinner("Dispatching WhatsApp messages..."):
+                    results = dispatch_whatsapp_messages(records, dry_run=is_dry_run)
+
+                # Summary metrics
+                sent = sum(1 for r in results if r.status == "sent")
+                simulated = sum(1 for r in results if r.status == "simulated")
+                skipped = sum(1 for r in results if r.status == "skipped")
+                errors = sum(1 for r in results if r.status == "error")
+
+                mc1, mc2, mc3, mc4 = st.columns(4)
+                mc1.metric("✅ Sent (Live)", sent)
+                mc2.metric("🔵 Simulated", simulated)
+                mc3.metric("⏭️ Skipped", skipped)
+                mc4.metric("❌ Errors", errors)
+
+                st.markdown("---")
+
+                # Results table
+                result_rows = []
+                for r in results:
+                    status_icon = {
+                        "sent": "✅ Sent",
+                        "simulated": "🔵 Simulated",
+                        "skipped": "⏭️ Skipped",
+                        "error": "❌ Error",
+                    }.get(r.status, r.status)
+                    result_rows.append({
+                        "Record ID": r.record_id,
+                        "Customer": r.customer_name,
+                        "Recipient": r.recipient_number,
+                        "Status": status_icon,
+                        "SID / Detail": r.message_sid or r.error or r.message_preview or "—",
+                        "Timestamp": r.timestamp,
+                    })
+
+                result_df = pd.DataFrame(result_rows)
+                st.dataframe(
+                    result_df,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        "Record ID": st.column_config.TextColumn("Record ID", width="small"),
+                        "Customer": st.column_config.TextColumn("Customer", width="medium"),
+                        "Recipient": st.column_config.TextColumn("WhatsApp Number", width="medium"),
+                        "Status": st.column_config.TextColumn("Status", width="small"),
+                        "SID / Detail": st.column_config.TextColumn("SID / Detail", width="large"),
+                        "Timestamp": st.column_config.TextColumn("Timestamp", width="medium"),
+                    },
+                )
+
+                if is_dry_run:
+                    st.info(
+                        "🔵 This was a **Dry-Run**. Switch to **⚡ Live Send** and add Twilio credentials "
+                        "to your `.env` to deliver real messages."
+                    )
+                else:
+                    st.success(
+                        f"✅ Live dispatch complete — {sent} messages sent via Twilio WhatsApp."
+                    )
 
 
 # ═══════════════════════════════════════════════════════════════════════════

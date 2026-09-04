@@ -15,6 +15,7 @@ This engine bridges three official Razorpay buildathon example tracks into a sin
 | **B2B Receivables Chaser** | Escalating workflows from gentle reminders → firm follow-ups → escalation notices based on invoice aging |
 | **Payment Degradation Root-Cause Analysis** | Parses gateway error codes (timeouts, insufficient funds, expired cards, etc.) into actionable root causes |
 | **Promise-to-Pay Tracker** | Extracts commitment dates from customer replies, pauses escalation, and schedules follow-up checks |
+| **💬 WhatsApp Dispatch (Twilio)** | Live or simulated multi-channel WhatsApp recovery dispatch with allowlist protection & rate limiting |
 
 ---
 
@@ -32,6 +33,7 @@ revenue_recovery_engine/
 │   ├── diagnoser.py              # Root-cause classifier & aging bracket engine
 │   ├── guards.py                 # Bounded policy gates & stopping rules
 │   ├── orchestrator.py           # Contextual recovery message generator
+│   ├── dispatcher.py             # Twilio WhatsApp message dispatcher with safety gates
 │   ├── logger.py                 # Immutable audit trail writer
 │   └── evaluator.py              # Metrics aggregation & markdown report generator
 │
@@ -73,8 +75,17 @@ pip install -r requirements.txt
 # 4. (Optional) Copy and configure environment
 cp .env.example .env
 
-# 5. Run the engine
+# 5. Run the engine (CLI)
 python main.py
+
+# 6. Run with WhatsApp simulation / dry-run dispatch
+python main.py --dispatch
+
+# 7. Run with live WhatsApp dispatch via Twilio (requires .env credentials)
+python main.py --dispatch --live-whatsapp
+
+# 8. Launch the Streamlit Executive Dashboard
+streamlit run dashboard.py
 ```
 
 ### Custom Data
@@ -87,15 +98,15 @@ python main.py --data path/to/your_batch.json
 
 ## 🔧 Pipeline Architecture
 
-The engine processes records through a strict, sequential 6-stage pipeline:
+The engine processes records through a strict, sequential 7-stage pipeline:
 
 ```
-┌──────────┐    ┌───────────┐    ┌────────┐    ┌──────────────┐    ┌────────┐    ┌───────────┐
-│  LOADER  │───▶│ DIAGNOSER │───▶│ GUARDS │───▶│ ORCHESTRATOR │───▶│ LOGGER │───▶│ EVALUATOR │
-└──────────┘    └───────────┘    └────────┘    └──────────────┘    └────────┘    └───────────┘
-  Ingest &        Root-cause      Policy         Message            Audit          Metrics &
-  validate        analysis +      enforcement    generation         trail          markdown
-  JSON data       aging brackets  & stopping     (tone-matched)     (append-only)  report
+┌──────────┐    ┌───────────┐    ┌────────┐    ┌──────────────┐    ┌────────┐    ┌───────────┐    ┌────────────┐
+│  LOADER  │───▶│ DIAGNOSER │───▶│ GUARDS │───▶│ ORCHESTRATOR │───▶│ LOGGER │───▶│ EVALUATOR │───▶│ DISPATCHER │
+└──────────┘    └───────────┘    └────────┘    └──────────────┘    └────────┘    └───────────┘    └────────────┘
+  Ingest &        Root-cause      Policy         Message            Audit          Metrics &        WhatsApp
+  validate        analysis +      enforcement    generation         trail          markdown         delivery
+  JSON data       aging brackets  & stopping     (tone-matched)     (append-only)  report           (Twilio API)
 ```
 
 ### Stage Details
@@ -108,6 +119,7 @@ The engine processes records through a strict, sequential 6-stage pipeline:
 | **④ Orchestrate** | `orchestrator.py` | Generate contextual messages matching tone to aging/status |
 | **⑤ Log** | `logger.py` | Write immutable audit entries to `recovery_audit.log` |
 | **⑥ Evaluate** | `evaluator.py` | Compute & print recovery metrics as a Markdown table |
+| **⑦ Dispatch** | `dispatcher.py` | Deliver recovery messages via WhatsApp (Twilio API / dry-run) |
 
 ---
 
@@ -198,9 +210,44 @@ Every decision is logged to `logs/recovery_audit.log` with full context:
 
 ---
 
+## 💬 WhatsApp Delivery via Twilio (Live & Simulation)
+
+The engine includes active WhatsApp messaging capabilities powered by the Twilio API for WhatsApp, built with strict financial safety guardrails:
+
+### Safety Architecture
+- **Dry-Run by Default**: Unless `ENABLE_LIVE_WHATSAPP=true` is explicitly set in `.env`, the dispatcher operates in dry-run simulation mode — drafting, validating, and logging messages without incurring API charges or sending unsolicited messages.
+- **Strict Recipient Allowlist**: In live mode, messages will **only** be dispatched to phone numbers declared in `ALLOWED_RECIPIENTS` (comma-separated E.164 format in `.env`), preventing accidental customer messaging during demos.
+- **Max-Retries Auto-Block**: Records in `MAX_RETRIES_REACHED` status are automatically intercepted and blocked from dispatch.
+- **Rate-Limiting Throttle**: Automatic 0.5s pause between sends to comply with WhatsApp messaging thresholds.
+
+### Setup Instructions
+
+1. **Sign up for Twilio**: Create a free sandbox account at [twilio.com](https://www.twilio.com).
+2. **Join WhatsApp Sandbox**: Follow the prompt in Twilio Console to text the join code to `+14155238886`.
+3. **Configure `.env`**:
+   ```env
+   TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   TWILIO_AUTH_TOKEN=your_auth_token_here
+   TWILIO_WHATSAPP_NUMBER=+14155238886
+   ENABLE_LIVE_WHATSAPP=true
+   ALLOWED_RECIPIENTS=+919876543210
+   ```
+4. **Send live or simulated messages**:
+   ```bash
+   # Dry-run simulation (no keys needed):
+   python main.py --dispatch
+
+   # Live WhatsApp delivery (requires .env configuration):
+   python main.py --dispatch --live-whatsapp
+   ```
+5. **Interactive UI**: Open `dashboard.py` in your browser, head to the **💬 WhatsApp Dispatch** tab, select any record, enter your number, and test single or batch message dispatch interactively!
+
+---
+
 ## 📜 License
 
 Built for the Razorpay AI Buildathon 2026. For demonstration and competition purposes.
+
 
 ---
 

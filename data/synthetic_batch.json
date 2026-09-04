@@ -2,371 +2,408 @@
   {
     "id": "INV-001",
     "type": "b2b_invoice",
-    "amount": 125000.00,
+    "amount": 125000.0,
     "aging_days": 5,
     "customer_name": "Prism Technologies Pvt Ltd",
     "customer_contact": "accounts@prismtech.in",
     "nudge_count": 0,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500001"
   },
   {
     "id": "INV-002",
     "type": "b2b_invoice",
-    "amount": 340000.00,
+    "amount": 340000.0,
     "aging_days": 12,
     "customer_name": "NovaByte Solutions",
     "customer_contact": "finance@novabyte.co",
     "nudge_count": 1,
-    "simulated_reply": "Will clear this by Tuesday"
+    "simulated_reply": "Will clear this by Tuesday",
+    "phone": "+919876500002"
   },
   {
     "id": "INV-003",
     "type": "b2b_invoice",
-    "amount": 78500.00,
+    "amount": 78500.0,
     "aging_days": 22,
     "customer_name": "CloudNine Infra",
     "customer_contact": "billing@cloudnine.io",
     "nudge_count": 1,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500003"
   },
   {
     "id": "INV-004",
     "type": "b2b_invoice",
-    "amount": 560000.00,
+    "amount": 560000.0,
     "aging_days": 35,
     "customer_name": "Zenith Manufacturing Ltd",
     "customer_contact": "cfo@zenithmfg.com",
     "nudge_count": 2,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500004"
   },
   {
     "id": "INV-005",
     "type": "b2b_invoice",
-    "amount": 92000.00,
+    "amount": 92000.0,
     "aging_days": 8,
     "customer_name": "PixelCraft Studios",
     "customer_contact": "pay@pixelcraft.design",
     "nudge_count": 0,
-    "simulated_reply": "We will pay by Friday"
+    "simulated_reply": "We will pay by Friday",
+    "phone": "+919876500005"
   },
   {
     "id": "INV-006",
     "type": "b2b_invoice",
-    "amount": 215000.00,
+    "amount": 215000.0,
     "aging_days": 28,
     "customer_name": "OmniLogistics Corp",
     "customer_contact": "ar@omnilogistics.in",
     "nudge_count": 2,
-    "simulated_reply": "Payment will be done by next Monday"
+    "simulated_reply": "Payment will be done by next Monday",
+    "phone": "+919876500006"
   },
   {
     "id": "INV-007",
     "type": "b2b_invoice",
-    "amount": 47000.00,
+    "amount": 47000.0,
     "aging_days": 45,
     "customer_name": "FreshFields Agro",
     "customer_contact": "accounts@freshfields.co.in",
     "nudge_count": 2,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500007"
   },
   {
     "id": "INV-008",
     "type": "b2b_invoice",
-    "amount": 183000.00,
+    "amount": 183000.0,
     "aging_days": 18,
     "customer_name": "BridgePoint Consulting",
     "customer_contact": "finance@bridgepoint.biz",
     "nudge_count": 0,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500008"
   },
   {
     "id": "INV-009",
     "type": "b2b_invoice",
-    "amount": 675000.00,
+    "amount": 675000.0,
     "aging_days": 60,
     "customer_name": "IronClad Securities",
     "customer_contact": "treasury@ironclad.co.in",
     "nudge_count": 2,
-    "simulated_reply": "Will settle by end of month"
+    "simulated_reply": "Will settle by end of month",
+    "phone": "+919876500009"
   },
   {
     "id": "INV-010",
     "type": "b2b_invoice",
-    "amount": 39500.00,
+    "amount": 39500.0,
     "aging_days": 3,
     "customer_name": "Luminary Labs",
     "customer_contact": "hello@luminarylabs.dev",
     "nudge_count": 0,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500010"
   },
   {
     "id": "INV-011",
     "type": "b2b_invoice",
-    "amount": 410000.00,
+    "amount": 410000.0,
     "aging_days": 33,
     "customer_name": "SteelEdge Industries",
     "customer_contact": "payments@steeledge.com",
     "nudge_count": 1,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500011"
   },
   {
     "id": "INV-012",
     "type": "b2b_invoice",
-    "amount": 156000.00,
+    "amount": 156000.0,
     "aging_days": 14,
     "customer_name": "AquaPure Systems",
     "customer_contact": "accounts@aquapure.in",
     "nudge_count": 1,
-    "simulated_reply": "Expect payment by Thursday"
+    "simulated_reply": "Expect payment by Thursday",
+    "phone": "+919876500012"
   },
   {
     "id": "INV-013",
     "type": "b2b_invoice",
-    "amount": 88000.00,
+    "amount": 88000.0,
     "aging_days": 50,
     "customer_name": "TerraNova Exports",
     "customer_contact": "export.fin@terranova.co",
     "nudge_count": 2,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500013"
   },
   {
     "id": "INV-014",
     "type": "b2b_invoice",
-    "amount": 295000.00,
+    "amount": 295000.0,
     "aging_days": 25,
     "customer_name": "Vertex Analytics",
     "customer_contact": "billing@vertexanalytics.ai",
     "nudge_count": 0,
-    "simulated_reply": "We will transfer by next week"
+    "simulated_reply": "We will transfer by next week",
+    "phone": "+919876500014"
   },
   {
     "id": "INV-015",
     "type": "b2b_invoice",
-    "amount": 520000.00,
+    "amount": 520000.0,
     "aging_days": 40,
     "customer_name": "QuickShip Logistics",
     "customer_contact": "finance@quickship.in",
     "nudge_count": 1,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500015"
   },
   {
     "id": "INV-016",
     "type": "b2b_invoice",
-    "amount": 67000.00,
+    "amount": 67000.0,
     "aging_days": 10,
     "customer_name": "NeoSpark Energy",
     "customer_contact": "ar@neospark.energy",
     "nudge_count": 0,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500016"
   },
   {
     "id": "INV-017",
     "type": "b2b_invoice",
-    "amount": 430000.00,
+    "amount": 430000.0,
     "aging_days": 55,
     "customer_name": "PeakView Realty",
     "customer_contact": "cfo@peakview.properties",
     "nudge_count": 2,
-    "simulated_reply": "Committed to pay by 15th"
+    "simulated_reply": "Committed to pay by 15th",
+    "phone": "+919876500017"
   },
   {
     "id": "INV-018",
     "type": "b2b_invoice",
-    "amount": 105000.00,
+    "amount": 105000.0,
     "aging_days": 7,
     "customer_name": "Catalyst Pharma",
     "customer_contact": "accounts@catalystpharma.in",
     "nudge_count": 0,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500018"
   },
   {
     "id": "PAY-001",
     "type": "payment_failure",
-    "amount": 49900.00,
+    "amount": 49900.0,
     "error_code": "ERR_GATEWAY_TIMEOUT",
     "customer_name": "DataVault Inc",
     "customer_contact": "support@datavault.io",
     "nudge_count": 0,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500019"
   },
   {
     "id": "PAY-002",
     "type": "payment_failure",
-    "amount": 185000.00,
+    "amount": 185000.0,
     "error_code": "ERR_INSUFFICIENT_FUNDS",
     "customer_name": "GreenLeaf Organics",
     "customer_contact": "pay@greenleaf.co.in",
     "nudge_count": 1,
-    "simulated_reply": "Will retry payment by Wednesday"
+    "simulated_reply": "Will retry payment by Wednesday",
+    "phone": "+919876500020"
   },
   {
     "id": "PAY-003",
     "type": "payment_failure",
-    "amount": 72000.00,
+    "amount": 72000.0,
     "error_code": "ERR_CARD_EXPIRED",
     "customer_name": "BlueHorizon Travel",
     "customer_contact": "billing@bluehorizon.com",
     "nudge_count": 0,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500021"
   },
   {
     "id": "PAY-004",
     "type": "payment_failure",
-    "amount": 310000.00,
+    "amount": 310000.0,
     "error_code": "ERR_BANK_DECLINED",
     "customer_name": "SilverLine Motors",
     "customer_contact": "fleet.pay@silverline.auto",
     "nudge_count": 2,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500022"
   },
   {
     "id": "PAY-005",
     "type": "payment_failure",
-    "amount": 23500.00,
+    "amount": 23500.0,
     "error_code": "ERR_GATEWAY_TIMEOUT",
     "customer_name": "MetaForge AI",
     "customer_contact": "ops@metaforge.ai",
     "nudge_count": 0,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500023"
   },
   {
     "id": "PAY-006",
     "type": "payment_failure",
-    "amount": 142000.00,
+    "amount": 142000.0,
     "error_code": "ERR_NETWORK_ERROR",
     "customer_name": "UrbanNest Interiors",
     "customer_contact": "finance@urbannest.design",
     "nudge_count": 1,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500024"
   },
   {
     "id": "PAY-007",
     "type": "payment_failure",
-    "amount": 89000.00,
+    "amount": 89000.0,
     "error_code": "ERR_INSUFFICIENT_FUNDS",
     "customer_name": "WaveRider Sports",
     "customer_contact": "accounts@waverider.in",
     "nudge_count": 0,
-    "simulated_reply": "I'll arrange funds and pay by Monday"
+    "simulated_reply": "I'll arrange funds and pay by Monday",
+    "phone": "+919876500025"
   },
   {
     "id": "PAY-008",
     "type": "payment_failure",
-    "amount": 256000.00,
+    "amount": 256000.0,
     "error_code": "ERR_AUTHENTICATION_FAILED",
     "customer_name": "CrestView Hospitality",
     "customer_contact": "billing@crestview.hotels",
     "nudge_count": 2,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500026"
   },
   {
     "id": "PAY-009",
     "type": "payment_failure",
-    "amount": 67500.00,
+    "amount": 67500.0,
     "error_code": "ERR_CARD_EXPIRED",
     "customer_name": "SwiftCode Labs",
     "customer_contact": "devops@swiftcode.dev",
     "nudge_count": 1,
-    "simulated_reply": "Updating card details, will pay by Friday"
+    "simulated_reply": "Updating card details, will pay by Friday",
+    "phone": "+919876500027"
   },
   {
     "id": "PAY-010",
     "type": "payment_failure",
-    "amount": 198000.00,
+    "amount": 198000.0,
     "error_code": "ERR_BANK_DECLINED",
     "customer_name": "HarvestGold Foods",
     "customer_contact": "payments@harvestgold.co.in",
     "nudge_count": 0,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500028"
   },
   {
     "id": "INV-019",
     "type": "b2b_invoice",
-    "amount": 375000.00,
+    "amount": 375000.0,
     "aging_days": 31,
     "customer_name": "Meridian Exports",
     "customer_contact": "trade@meridianexports.in",
     "nudge_count": 1,
-    "simulated_reply": "Promise to clear by 20th of this month"
+    "simulated_reply": "Promise to clear by 20th of this month",
+    "phone": "+919876500029"
   },
   {
     "id": "INV-020",
     "type": "b2b_invoice",
-    "amount": 54000.00,
+    "amount": 54000.0,
     "aging_days": 2,
     "customer_name": "BrightStar Education",
     "customer_contact": "admin@brightstar.edu.in",
     "nudge_count": 0,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500030"
   },
   {
     "id": "PAY-011",
     "type": "payment_failure",
-    "amount": 415000.00,
+    "amount": 415000.0,
     "error_code": "ERR_GATEWAY_TIMEOUT",
     "customer_name": "OceanDeep Marine",
     "customer_contact": "procurement@oceandeep.ship",
     "nudge_count": 1,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500031"
   },
   {
     "id": "PAY-012",
     "type": "payment_failure",
-    "amount": 33000.00,
+    "amount": 33000.0,
     "error_code": "ERR_DUPLICATE_TRANSACTION",
     "customer_name": "FinEdge Capital",
     "customer_contact": "ops@finedge.capital",
     "nudge_count": 0,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500032"
   },
   {
     "id": "INV-021",
     "type": "b2b_invoice",
-    "amount": 148000.00,
+    "amount": 148000.0,
     "aging_days": 20,
     "customer_name": "CoreBuild Constructions",
     "customer_contact": "accounts@corebuild.co",
     "nudge_count": 1,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500033"
   },
   {
     "id": "PAY-013",
     "type": "payment_failure",
-    "amount": 57000.00,
+    "amount": 57000.0,
     "error_code": "ERR_INSUFFICIENT_FUNDS",
     "customer_name": "RapidPrint Media",
     "customer_contact": "billing@rapidprint.media",
     "nudge_count": 1,
-    "simulated_reply": "Will arrange funds by next Tuesday"
+    "simulated_reply": "Will arrange funds by next Tuesday",
+    "phone": "+919876500034"
   },
   {
     "id": "INV-022",
     "type": "b2b_invoice",
-    "amount": 720000.00,
+    "amount": 720000.0,
     "aging_days": 75,
     "customer_name": "GlobalSync IT Services",
     "customer_contact": "cfo@globalsync.tech",
     "nudge_count": 2,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500035"
   },
   {
     "id": "PAY-014",
     "type": "payment_failure",
-    "amount": 41000.00,
+    "amount": 41000.0,
     "error_code": "ERR_NETWORK_ERROR",
     "customer_name": "EcoTrail Adventures",
     "customer_contact": "bookings@ecotrail.in",
     "nudge_count": 0,
-    "simulated_reply": null
+    "simulated_reply": null,
+    "phone": "+919876500036"
   },
   {
     "id": "INV-023",
     "type": "b2b_invoice",
-    "amount": 263000.00,
+    "amount": 263000.0,
     "aging_days": 16,
     "customer_name": "ApexWare Solutions",
     "customer_contact": "invoices@apexware.io",
     "nudge_count": 0,
-    "simulated_reply": "Will make the transfer by end of week"
+    "simulated_reply": "Will make the transfer by end of week",
+    "phone": "+919876500037"
   }
 ]

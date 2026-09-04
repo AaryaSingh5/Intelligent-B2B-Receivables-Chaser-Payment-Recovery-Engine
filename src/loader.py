@@ -45,6 +45,7 @@ class BaseRecord(BaseModel):
     amount: float = Field(..., gt=0, description="Amount in INR")
     customer_name: str
     customer_contact: str
+    phone: Optional[str] = None
     nudge_count: int = Field(default=0, ge=0)
     simulated_reply: Optional[str] = None
 
