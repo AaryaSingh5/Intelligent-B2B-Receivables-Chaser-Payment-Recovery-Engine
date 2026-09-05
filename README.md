@@ -108,7 +108,7 @@ python -m unittest discover tests/
 
 The executive dashboard is live on Streamlit Community Cloud:
 
-👉 **[Launch RECOVER.AI Live Dashboard](https://intelligent-b2b-receivables-chaser-payment-recovery-engine-7jm.streamlit.app/)**
+👉 **[Launch AegisPay Live Dashboard](https://intelligent-b2b-receivables-chaser-payment-recovery-engine-7jm.streamlit.app/)**
 
 - **Instant Browser Access**: No local installation or environment configuration required.
 - **Full Interactive Capabilities**: Review the 37-record batch, test the authentic dark-mode WhatsApp device simulator, ingest new receipts, trigger simulated Razorpay webhooks, and inspect the real-time SQLite database.

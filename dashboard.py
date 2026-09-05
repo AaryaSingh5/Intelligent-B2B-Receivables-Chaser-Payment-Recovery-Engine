@@ -62,7 +62,7 @@ LOG_PATH = Path(__file__).resolve().parent / "logs" / "recovery_audit.log"
 # ═══════════════════════════════════════════════════════════════════════════
 
 st.set_page_config(
-    page_title="RECOVER.AI — Autonomous B2B Revenue Recovery Engine",
+    page_title="AegisPay — Autonomous B2B Revenue Recovery Engine",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -803,7 +803,7 @@ def render():
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
                 <div style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #6366f1, #06b6d4); display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff;">⚡</div>
                 <div>
-                    <div style="font-weight: 800; font-size: 16px; color: #fff; letter-spacing: -0.02em;">RECOVER.AI</div>
+                    <div style="font-weight: 800; font-size: 16px; color: #fff; letter-spacing: -0.02em;">AegisPay</div>
                     <div style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 700;">Enterprise Tier</div>
                 </div>
             </div>
@@ -876,7 +876,7 @@ def render():
         <div class="brand-section">
             <div class="brand-icon-box">⚡</div>
             <div>
-                <h1 class="brand-title">RECOVER<span>.AI</span></h1>
+                <h1 class="brand-title">AegisPay</h1>
                 <p class="brand-sub">Autonomous B2B Receivables Chaser & Payment Recovery Engine</p>
             </div>
         </div>
@@ -1196,7 +1196,7 @@ def render():
                         </div>
                     </div>
                     <div class="wa-bubble outbound" style="background: rgba(0, 92, 75, 0.65); border: 1px dashed rgba(52, 211, 153, 0.4);">
-                        <div style="font-size: 11px; color: #34d399; font-weight: 700;">🤖 RECOVER.AI AUTOMATION:</div>
+                        <div style="font-size: 11px; color: #34d399; font-weight: 700;">🤖 AegisPay AUTOMATION:</div>
                         <div>Thank you for your commitment! Reminders have been paused until next Tuesday.</div>
                         <div class="wa-meta">
                             <span>10:45 AM</span>
