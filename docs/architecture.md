@@ -1,5 +1,5 @@
 # 🏗️ System Architecture & Engineering Design Decisions
-> **AegisPay — Intelligent B2B Receivables Chaser & Payment Recovery Engine**  
+> **Smart Receivables — Intelligent B2B Receivables Chaser & Payment Recovery Engine**  
 > Razorpay AI Buildathon 2026 — Track 3: AI Revenue Recovery
 
 ---
@@ -12,7 +12,7 @@ In modern B2B commerce and checkout workflows, revenue leakage rarely happens in
 
 Most merchants handle this with either **manual finance team follow-ups** (slow, expensive, inconsistently applied) or **static blanket email blasts** (unresponsive to customer context, risk damaging high-value client relationships).
 
-**AegisPay** solves this by implementing an autonomous, event-driven agentic closed loop:  
+**Smart Receivables** solves this by implementing an autonomous, event-driven agentic closed loop:  
 `Detect → Diagnose → Decide → Execute → Verify`
 
 ---

@@ -1,4 +1,4 @@
-# ⚡ AegisPay — Autonomous B2B Revenue Recovery Platform
+# ⚡ Smart Receivables — Autonomous B2B Revenue Recovery Platform
 > **Enterprise Walkthrough & UI Showcase**  
 > Razorpay AI Buildathon 2026 — Track 3: AI Revenue Recovery
 
@@ -19,7 +19,7 @@ The interface runs locally at **`http://localhost:8501`** and operates as a unif
 ![Executive Overview & Hero KPI Cards](./docs/assets/fintech_hero_kpis.png)
 
 #### Top Executive Branding Header
-- **AegisPay** branding with enterprise gradient badge
+- **Smart Receivables** branding with enterprise gradient badge
 - Live system status pills:
   - `● FASTAPI 8000 ONLINE` (Pulsing live indicator)
   - `RAZORPAY LINK GATEWAY` (Active standard payment links)

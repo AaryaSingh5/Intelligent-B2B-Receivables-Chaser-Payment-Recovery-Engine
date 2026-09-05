@@ -1,8 +1,8 @@
-# 🎬 AegisPay — Buildathon Video Pitch Script
+# 🎬 Smart Receivables — Buildathon Video Pitch Script
 
 **Track 3: AI Revenue Recovery (Razorpay AI Buildathon 2026)**
 
-This document contains a suggested choreography and narration script for recording the demo video of the AegisPay Revenue Recovery Engine.
+This document contains a suggested choreography and narration script for recording the demo video of the Smart Receivables Revenue Recovery Engine.
 
 ---
 
@@ -20,7 +20,7 @@ This document contains a suggested choreography and narration script for recordi
 ### 1. Introduction (0:00 - 0:30)
 **[Visual]** Start on the Executive Dashboard (Tab 1: Executive Overview & Analytics) showing the charts and KPIs.
 **[Audio]** 
-> *"Hello judges, welcome to AegisPay, our submission for Track 3: AI Revenue Recovery.*
+> *"Hello judges, welcome to Smart Receivables, our submission for Track 3: AI Revenue Recovery.*
 > *We've built an autonomous, event-driven engine that chases B2B receivables and handles payment failures without human intervention.*
 > *As you can see on our dashboard, it continuously monitors at-risk capital, enforces compliance to prevent spam, and acts as a central nervous system for revenue recovery."*
 
@@ -47,9 +47,9 @@ This document contains a suggested choreography and narration script for recordi
 > *"Finally, we simulate Razorpay webhooks. When an invoice is paid or fails, the webhook hits our backend, diagnoses the root cause, and autonomously closes the recovery loop by updating our database in real-time."*
 
 ### 4. Conclusion (2:00 - 2:30)
-**[Visual]** Switch back to Tab 1 (Dashboard) or end on the AegisPay logo.
+**[Visual]** Switch back to Tab 1 (Dashboard) or end on the Smart Receivables logo.
 **[Audio]**
-> *"By combining Razorpay's API, Twilio's WhatsApp gateway, and our bounded AI NLP engine, AegisPay removes the manual operational overhead of collections.*
+> *"By combining Razorpay's API, Twilio's WhatsApp gateway, and our bounded AI NLP engine, Smart Receivables removes the manual operational overhead of collections.*
 > *It's a production-ready, safe, and autonomous Revenue Recovery Engine. Thank you!"*
 
 ---
